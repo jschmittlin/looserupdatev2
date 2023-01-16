@@ -9,22 +9,27 @@ import discord
 from discord import app_commands
 from discord.ext import commands, tasks
 
-EMO = discord.Object(id=1039594104297881720)
-MY_GUILD = discord.Object(id=469156433502404639)
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+MY_GUILD = discord.Object(id=os.getenv('GUILD_ID'))
+ROLE_ADMIN_01 = int(os.getenv('ROLE_01'))
+ROLE_ADMIN_02 = int(os.getenv('ROLE_02'))
 
 activities = [
     discord.Activity(type=discord.ActivityType.watching, name="you"),
     discord.Activity(type=discord.ActivityType.watching, name="Medhi put pressure on"),
+    discord.Activity(type=discord.ActivityType.watching, name="Medhi be shadow ban"),
     discord.Activity(type=discord.ActivityType.watching, name="botlane feed"),
-    discord.Activity(type=discord.ActivityType.watching, name="LoLEsports"),
     discord.Activity(type=discord.ActivityType.watching, name="Jérôme farmer these jungle camps"),
     discord.Activity(type=discord.ActivityType.listening, name="Valentin raging"),
     discord.Activity(type=discord.ActivityType.listening, name="La déprime"),
-    discord.Activity(type=discord.ActivityType.listening, name="them scream"),
     discord.Game(name="for /help"),
     discord.Game(name="at tracking down losers"),
     discord.Game(name="Blitzcrank's Poro Roundup"),
     discord.Game(name="Doom Bots"),
+    discord.Game(name="to support KCorp !"),
 ]
 
 class MyClient(discord.Client):
@@ -70,7 +75,7 @@ from response import MyEmbed, MyView, Data
 @app_commands.describe(region="Region")
 @app_commands.choices(region = [
     app_commands.Choice(name="Brazil (BR)", value="BR"),
-    app_commands.Choice(name="Europe Nordic & East (EUNE)", value="EUN"),
+    app_commands.Choice(name="Europe Nordic & East (EUNE)", value="EUNE"),
     app_commands.Choice(name="Europe West (EUW)", value="EUW"),
     app_commands.Choice(name="Japan (JP)", value="JP"),
     app_commands.Choice(name="Korea (KR)", value="KR"),
@@ -90,20 +95,22 @@ async def region(interaction: discord.Interaction, region: app_commands.Choice[s
     await interaction.response.defer()
     msg = set_region(region.value)
     Data.set_author(interaction.user.name, interaction.user.avatar.url)
-    await interaction.followup.send(embed=MyEmbed.success(msg))
+    await interaction.followup.send(embed=MyEmbed.region(msg[0], msg[1], msg[2]))
 
 
 @client.tree.command(name="profile", description="View selected summoner profile.")
 @app_commands.describe(name="Player Name")
 async def profile(interaction: discord.Interaction, name: str):
-    await interaction.response.defer()
+    Data.set_author(interaction.user.name, interaction.user.avatar.url)
     try:
         # Reset global variables
         resetGlobal()
 
         # Summoner Profile
         summoner = fetchSummoner(name)
-        if isinstance(summoner, str): return await interaction.followup.send(embed=MyEmbed.error(summoner))
+        if isinstance(summoner, str): return await interaction.response.send_message(embed=MyEmbed.error(summoner), ephemeral=True)
+
+        await interaction.response.defer()
 
         # Set summoner
         set_summoner(summoner)
@@ -121,9 +128,6 @@ async def profile(interaction: discord.Interaction, name: str):
         # Update Data
         Data.update(get_region(), get_summoner(), get_ranks(), get_masteryScore(), get_masteries(), get_challenges(), get_history(), get_match(), get_match_select())
 
-        # Set Author
-        Data.set_author(interaction.user.name, interaction.user.avatar.url)
-
         # Embed
         embed = MyEmbed.profile()
 
@@ -132,15 +136,16 @@ async def profile(interaction: discord.Interaction, name: str):
         view.children[0].disabled = True
 
         await interaction.followup.send(embed=embed, view=view)
-    except Exception as error: await interaction.followup.send(embed=MyEmbed.system("", error))
+    except Exception as error: await interaction.response.send_message(embed=MyEmbed.system("", error), ephemeral=True)
 
 
-player = []
+PLAYER = []
+MAX_PLAYERS = 5
 @client.tree.command(name="add-player", description="Add player to the Update list.")
 @app_commands.describe(name="Player Name", region="Region")
 @app_commands.choices(region = [
     app_commands.Choice(name="Brazil (BR)", value="BR"),
-    app_commands.Choice(name="Europe Nordic & East (EUNE)", value="EUN"),
+    app_commands.Choice(name="Europe Nordic & East (EUNE)", value="EUNE"),
     app_commands.Choice(name="Europe West (EUW)", value="EUW"),
     app_commands.Choice(name="Japan (JP)", value="JP"),
     app_commands.Choice(name="Korea (KR)", value="KR"),
@@ -156,48 +161,87 @@ player = []
     app_commands.Choice(name="Taiwan (TW)", value="TW"),
     app_commands.Choice(name="Vietnam (VN)", value="VN"),
 ])
+@app_commands.checks.has_any_role(ROLE_ADMIN_01, ROLE_ADMIN_02)
 async def add_player(interaction: discord.Interaction, name: str, region: app_commands.Choice[str]):
     await interaction.response.defer()
+    Data.set_author(interaction.user.name, interaction.user.avatar.url)
     try:
+        if len(PLAYER) >= MAX_PLAYERS: return await interaction.followup.send(embed=MyEmbed.system("Update list is full.", "Please remove some players from the list."))
+
         # Summoner Profile
-        summoner = fetchSummoner(name)
+        summoner = fetchSummonerRegion(name, Region.from_platform(region.value).value)
         if isinstance(summoner, str): return await interaction.followup.send(embed=MyEmbed.error(summoner))
 
         # Set summoner
-        player.append(summoner)
+        rank = fetchRanks(summoner[0])[0]
 
-        Data.set_author(interaction.user.name, interaction.user.avatar.url)
-        await interaction.followup.send(embed=MyEmbed.success(f"Added {summoner[2]} to the Update list."))
-    except Exception as error: await interaction.followup.send(embed=MyEmbed.system("", error))
+        update_player = []
+        update_player.append(region.value)
+        update_player.append(summoner[2])
+        update_player.append(summoner[0])
+        update_player.append(summoner[1])
+        rank.remove(rank[0])
+        update_player.append(rank)
         
+        PLAYER.append(update_player)
 
-@client.tree.command(name="update", description="View selected summoner LP in ranked.")
-async def update(interaction: discord.Interaction):
-    await interaction.response.defer()
-    await interaction.followup.send(embed=MyEmbed.system("Update", "This command is currently under development."))
+        await interaction.followup.send(embed=MyEmbed.success(f"{summoner[2]} #{region.value}", "Added to the Update list."))
+    except Exception as error: await interaction.followup.send(embed=MyEmbed.system("", error), ephemeral=True)
 
 
 @client.tree.command(name="setting", description="View setting.")
 async def setting(interaction: discord.Interaction):
-    await interaction.response.defer()
-    region = get_region()
-    await interaction.followup.send(embed=MyEmbed.system(region, player))
+    region = Region.from_platform(get_region()).region
+    Data.set_author(interaction.user.name, interaction.user.avatar.url)
+    await interaction.response.send_message(embed=MyEmbed.setting((region.value[1], region.value[0]), PLAYER, MAX_PLAYERS), ephemeral=True)
 
 
-@client.tree.command(name="delete-setting", description="Delete all setting.")
-async def delete_setting(interaction: discord.Interaction):
+@client.tree.command(name="delete-player", description="Delete all setting.")
+@app_commands.checks.has_any_role(ROLE_ADMIN_01, ROLE_ADMIN_02)
+async def delete_player(interaction: discord.Interaction):
     await interaction.response.defer()
-    player.clear()
+    Data.set_author(interaction.user.name, interaction.user.avatar.url)
+    PLAYER.clear()
     set_region(new_region="EUW") # Default Region
-    await interaction.followup.send(embed=MyEmbed.success("All setting has been deleted."))
+    await interaction.followup.send(embed=MyEmbed.success("All setting has been deleted.", " "))
+
+
+@client.tree.command(name="test", description="test")
+async def test(interaction: discord.Interaction, user: discord.User, *, message: str):
+    Data.set_author(interaction.user.name, interaction.user.avatar.url)
+
+    await interaction.response.send_message(embed=MyEmbed.success(f"Message has been sent to", " "), ephemeral=True)
+
+
+@client.tree.command(name="dm", description="Send a message to a user.")
+@app_commands.describe(user="User", message="Message")
+@app_commands.checks.has_any_role(ROLE_ADMIN_01)
+async def dm(interaction: discord.Interaction, user: discord.User, *, message: str):
+    Data.set_author(interaction.user.name, interaction.user.avatar.url)
+    await user.send(message)
+    await interaction.response.send_message(embed=MyEmbed.success(f"Message has been sent to {user.name}", " "), ephemeral=True)
 
 
 @client.tree.command(name="help", description="Shows the help menu.")
 async def help(interaction: discord.Interaction):
-    await interaction.response.defer()
-    await interaction.followup.send(embed=MyEmbed.system("Help", "This command is currently under development."))
+    Data.set_author(interaction.user.name, interaction.user.avatar.url)
+    await interaction.response.send_message(embed=MyEmbed.help(), ephemeral=True)
 
 
+@add_player.error
+async def add_player_error(interaction: discord.Interaction, error: Exception):
+    Data.set_author(interaction.user.name, interaction.user.avatar.url)
+    await interaction.response.send_message(embed=MyEmbed.system("Permission denied", "You must get an admin to execute this command"), ephemeral=True)
+        
+@delete_player.error
+async def delete_player_error(interaction: discord.Interaction, error: Exception):
+    Data.set_author(interaction.user.name, interaction.user.avatar.url)
+    await interaction.response.send_message(embed=MyEmbed.system("Permission denied", "You must get an admin to execute this command"), ephemeral=True)
+
+@setting.error
+async def setting_error(interaction: discord.Interaction, error: Exception):
+    Data.set_author(interaction.user.name, interaction.user.avatar.url)
+    await interaction.response.send_message(embed=MyEmbed.system("Error", error), ephemeral=True)
 
 
-client.run('MTAzNzM5NTUwNjY5NzA3Njg3Nw.G_uliL.DpvHBTtKz7enx15s5v7qtpi4NjMOr-_a6eCCIs')
+client.run(os.getenv('TOKEN'))

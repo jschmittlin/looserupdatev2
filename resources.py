@@ -1,11 +1,37 @@
 class Icon:
     nav_profile = 'https://cdn.discordapp.com/attachments/598865284786552852/1039235266428284948/nav-icon-profile.png'
     error = 'https://cdn.discordapp.com/attachments/598865284786552852/1039234765355761755/alpha_watermark_vector.png'
-    poro_mission = 'https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-navigation/global/default/missiontracker_poro.png'
+    error_image = 'https://cdn.discordapp.com/attachments/1039594104759271428/1063602226729340928/EMRATA_024a.jpg'
+    poro_mission = 'https://cdn.discordapp.com/attachments/1039594104759271428/1064310061083656203/missiontracker_poro2.png'
+    poro_voice = 'https://cdn.discordapp.com/attachments/1039594104759271428/1064310061314347078/voice-poro2.png'
+    poro_error = 'https://cdn.discordapp.com/attachments/1039594104759271428/1064310060815229008/error_poro2.png'
     ha_victory = 'https://cdn.discordapp.com/attachments/1039594104759271428/1042110183339479100/icon-ha-victory.png'
     ha_defeat = 'https://cdn.discordapp.com/attachments/1039594104759271428/1042110182844547082/icon-ha-defeat.png'
     sr_victory = 'https://cdn.discordapp.com/attachments/1039594104759271428/1042110182534164501/icon-sr-victory.png'
     sr_defeat = 'https://cdn.discordapp.com/attachments/1039594104759271428/1042110183771488276/icon-sr-defeat.png'
+    setting = 'https://cdn.discordapp.com/attachments/1039594104759271428/1064249149589032991/icon_settings.png'
+    book = 'https://cdn.discordapp.com/attachments/1039594104759271428/1064248147246842007/npe-rewards-book.png'
+    search = 'https://cdn.discordapp.com/attachments/1039594104759271428/1064303925014044832/search-icon.png'
+
+    transfer = {
+        'BR':'<:br:1064310835511558174>',
+        'EUNE':'<:eune:1064310837755519007>',
+        'EUW':'https://cdn.discordapp.com/attachments/1039594104759271428/1064314656203751454/euw.jpg',
+        'JP':'<:jp:1064310840779616358>',
+        'KR':'<:transfer:1064311427520807013>',
+        'LAN':'<:lan:1064310842608336966>',
+        'LAS':'<:las:1064310843929538660>',
+        'NA':'<:na:1064310844881653782>',
+        'OCE':'<:oce:1064310847184310292>',
+        'RU':'<:ru:1064310848543281253>',
+        'TR':'<:tr:1064310849830924291>',
+        'PH':'<:transfer:1064311427520807013>',
+        'SG':'<:transfer:1064311427520807013>',
+        'TH':'<:transfer:1064311427520807013>',
+        'TW':'<:transfer:1064311427520807013>',
+        'VN':'<:transfer:1064311427520807013>'
+    }
+
 
 class Color:
     default = 0x715248
@@ -128,7 +154,7 @@ class Emoji:
         'Aurelion Sol':'<:AurelionSol:1039637437011468348>',
         'Azir':'<:Azir:1039637438492061757>',
         'Bard':'<:Bard:1039637439599349770>',
-        "Bel'Veth":'<:Belveth:1039637440719241276>',
+        "Bel'veth":'<:Belveth:1039637440719241276>',
         'Blitzcrank':'<:Blitzcrank:1039637441923006534>',
         'Brand':'<:Brand:1039637443181281350>',
         'Braum':'<:Braum:1039637444385054780>',
@@ -484,7 +510,7 @@ class Emoji:
         6695:'<:6695:1041803451933405204>',
         6696:'<:6696:1041803453493686343>',
         7000:'<:7000:1041803455762796554>',
-        # 7001:'<:7001:1041803457306312734>',
+        7001:'<:7001:1041803457306312734>',
         7002:'<:7002:1041803459248267324>',
         # 7003:'<:7003:1041803460527530104>',
         # 7004:'<:7004:1041803461878095923>',

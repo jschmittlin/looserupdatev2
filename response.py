@@ -23,9 +23,9 @@ def spacing(rank: str, wins: int, losses: int):
     if rank == 'IRON' or rank == 'GOLD': spaces = f'{Emoji.blank}{Emoji.blank}{Emoji.blank} \u200b \u200b '
     if rank == 'BRONZE' or rank == 'SILVER' or rank == 'MASTER': spaces = f'{Emoji.blank}{Emoji.blank}{Emoji.blank}'
     if rank == 'PLATINUM' or rank == 'DIAMOND': spaces = f'{Emoji.blank} \u200b \u200b \u200b \u200b '
-    if rank == 'GRANDMASTER' or rank == 'CHALLENGER': return f'{Emoji.blank} \u200b '
-    if wins > 99: spaces += '\u200b \u200b '
-    if losses > 99: spaces += '\u200b \u200b '
+    if rank == 'GRANDMASTER' or rank == 'CHALLENGER': return f'{Emoji.blank}'
+    if wins > 99: spaces += ' \u200b '
+    if losses > 99: spaces += ' \u200b '
     return spaces
 
 
@@ -82,11 +82,11 @@ class MyEmbed:
         if ranks[0][0] != None:
             spaces_solo = spacing(ranks[0][1], ranks[0][4], ranks[0][5])
             value_solo = f'{Emoji.tier[ranks[0][1]]} \u200b **{ranks[0][1]} {ranks[0][2]}**{spaces_solo}{ranks[0][3]} LP\n'
-            value_solo += f'**Win Rate {percent(ranks[0][4], ranks[0][5])}%**{Emoji.blank}{ranks[0][4]}W / {ranks[0][5]}L\n{Emoji.blank}'
+            value_solo += f'**Win Rate {percent(ranks[0][4], ranks[0][5])}%** {Emoji.blank} {ranks[0][4]}W / {ranks[0][5]}L\n{Emoji.blank}'
         if ranks[1][0] != None:
             spaces_flex = spacing(ranks[0][1], ranks[0][4], ranks[0][5])
             value_flex = f'{Emoji.tier[ranks[0][1]]} \u200b **{ranks[0][1]} {ranks[0][2]}**{spaces_flex}{ranks[0][3]} LP\n'
-            value_flex += f'**Win Rate {percent(ranks[0][4],ranks[0][5])}%**{Emoji.blank}{ranks[0][4]}W / {ranks[0][5]}L\n{Emoji.blank}'
+            value_flex += f'**Win Rate {percent(ranks[0][4],ranks[0][5])}%** {Emoji.blank} {ranks[0][4]}W / {ranks[0][5]}L\n{Emoji.blank}'
 
         embed.add_field(name='SOLO/DUO', value=value_solo, inline=True)
         embed.add_field(name='FLEX 5V5', value=value_flex, inline=True)
@@ -146,7 +146,7 @@ class MyEmbed:
             except: item0 = item1 = item2 = item3 = item4 = item5 = item6 = Emoji.item[0]
 
             match_010 = f'{Emoji.blank}{item0} \u200b {item1} \u200b {item2} \u200b {item3} \u200b {item4} \u200b {item5} \u200b {item6}\n'
-            match_010 += f'**{data["kills"]} / {data["deaths"]} / {data["assists"]}{Emoji.blank}{data["cs"]} {Emoji.history["cs"]}{Emoji.blank}{data["gold"]} {Emoji.history["gold"]}**'
+            match_010 += f'**{data["kills"]} / {data["deaths"]} / {data["assists"]}{Emoji.blank}{data["cs"]}{Emoji.history["cs"]}{Emoji.blank}{data["gold"]}{Emoji.history["gold"]}**'
 
             embed.add_field(name=f'{emoji_map} {win}', value=match_100, inline=True)
             embed.add_field(name=Emoji.blank, value=match_010, inline=True)
@@ -172,7 +172,7 @@ class MyEmbed:
         embed.set_author(name=f'{win}', icon_url=icon_map)
         embed.set_footer(text=authorName, icon_url=authorIcon)
 
-        team1_kda = f'**TEAM \u200b 1{Emoji.blank}\u200b {match[4]["kills"]} \u200b / \u200b {match[4]["deaths"]} \u200b / \u200b {match[4]["assists"]} \u200b \u200b {Emoji.history["kda"]}{Emoji.blank}**'
+        team1_kda = f'**TEAM \u200b 1{Emoji.blank}\u200b {match[4]["kills"]} \u200b / \u200b {match[4]["deaths"]} \u200b / \u200b {match[4]["assists"]} \u200b {Emoji.history["kda"]}{Emoji.blank}**'
         team1_gold = f'{Emoji.blank}{Emoji.blank}{match[4]["gold"]} \u200b {Emoji.history["gold"]}'
         team1_icon_kda = f'{Emoji.blank}{Emoji.blank}{Emoji.blank}{Emoji.history["kda"]}'
         team1_champ = team1_item = team1_inv_kda = f''
@@ -295,27 +295,60 @@ class MyEmbed:
 
         return embed
 
-    def success(msg):
-        embed = discord.Embed(title=f'```{msg}```', description="", color=Color.success, timestamp=datetime.utcnow())
+    def success(msg, desc):
+        embed = discord.Embed(title=f"```{msg}```", description=f"**{desc}**", color=Color.default, timestamp=datetime.utcnow())
         embed.set_author(name=f'COMMAND SUCCESS', icon_url=Icon.error)
         embed.set_footer(text=authorName, icon_url=authorIcon)
         embed.set_thumbnail(url=Icon.poro_mission)
         return embed
 
+    def region(msg, desc, platform):
+        embed = discord.Embed(title=f"```{msg}```", description=f"**{desc}**", color=Color.default, timestamp=datetime.utcnow())
+        embed.set_author(name=f'COMMAND SUCCESS', icon_url=Icon.error)
+        embed.set_footer(text=authorName, icon_url=authorIcon)
+        embed.set_thumbnail(url=Icon.transfer[platform])
+        return embed
+
     def error(msg):
         description = "Something went horribly wrong executing that command, please try again in a bit. If this error keeps happening, please send a bug report.\n\nTry '/help' for more information."
-        embed = discord.Embed(title=f'```Error : {msg}```', description=description, color=Color.error, timestamp=datetime.utcnow())
+        embed = discord.Embed(title=f'```{msg}```', description=description, color=Color.error, timestamp=datetime.utcnow())
         embed.set_author(name=f'COMMAND ERROR', icon_url=Icon.error)
         embed.set_footer(text=authorName, icon_url=authorIcon)
-        embed.set_image(url="https://cdn.discordapp.com/attachments/1039594104759271428/1063602226729340928/EMRATA_024a.jpg")
+        embed.set_image(url=Icon.error_image)
         return embed
 
     def system(msg, desc):
-        embed = discord.Embed(title=msg, description=desc, color=Color.error, timestamp=datetime.utcnow())
+        embed = discord.Embed(title=f"```{msg}```", description=f"**{desc}**", color=Color.error, timestamp=datetime.utcnow())
         embed.set_author(name=f'COMMAND ERROR', icon_url=Icon.error)
         embed.set_footer(text=authorName, icon_url=authorIcon)
-        # embed.set_image(url="https://www.instyle.com/thmb/FdMSR6RmfxSqrLvy9HVzzH_FE_c=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/103122-Emrata-Social-ade4acc948ea4bae952ed8636e94774b.jpg")
+        embed.set_thumbnail(url=Icon.poro_error)
         return embed
+
+    def setting(region, player, max):
+        embed = discord.Embed(title="Selected data will be the default value for profile, player to update.", description="", color=Color.default, timestamp=datetime.utcnow())
+        embed.set_author(name=f'SETTINGS', icon_url=Icon.setting)
+        embed.set_footer(text=authorName, icon_url=authorIcon)
+        embed.add_field(name="REGION", value=f"```{region[0]} ({region[1]})```", inline=False)
+        value_player = ""
+        for x in player:
+            try: value_player += f"```{x[1]} #{x[0]}\n{x[4][0]} {x[4][1]} • {x[4][2]} LP | Win Rate {percent(x[4][3], x[4][4])}% • [{x[4][3]}W / {x[4][4]}L]```"
+            except: value_player += f"```{x[1]} #{x[0]}\nUnranked```"
+        if len(player) == 0: value_player = "``` ```"
+        embed.add_field(name=f"PLAYER (Max. {max})", value=f"{value_player}", inline=False)
+        return embed
+
+    def help():
+        embed = discord.Embed(title="List of commands", description="", color=Color.default, timestamp=datetime.utcnow())
+        embed.set_author(name=f'HELP', icon_url=Icon.book)
+        embed.set_footer(text=authorName, icon_url=authorIcon)
+        embed.set_thumbnail(url=Icon.poro_voice)
+        embed.add_field(name="help", value="```List of commands```", inline=False)
+        embed.add_field(name="profile", value="```View selected summoner profile```", inline=False)
+        embed.add_field(name="setting", value="```View setting```", inline=False)
+        embed.add_field(name="add-player", value="```Add player to the Update list```", inline=False)
+        embed.add_field(name="delete-player", value="```Delete all players from the Update list```", inline=False)
+        return embed
+
 
 
 # Data

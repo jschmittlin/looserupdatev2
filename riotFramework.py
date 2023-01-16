@@ -3,6 +3,8 @@ import json
 import requests
 from datetime import datetime, timedelta
 
+import os
+
 # Data & Resources
 from data import Region, Platform, ddragon, Champion, Challenges, Summoner
 from resources import Emoji, Icon
@@ -12,7 +14,7 @@ from response import MyEmbed, MyView
 # Riot
 from riotwatcher import LolWatcher, ApiError
 
-riot_api_key = 'RGAPI-b6818fc0-9adb-47f2-a937-886b56840e2e'
+riot_api_key = os.getenv('API_RIOT')
 watcher = LolWatcher(riot_api_key)
 
 # Global Variables
@@ -47,7 +49,10 @@ def set_region(new_region: str):
     """ set the region for the API """
     global region
     region = Region.from_platform(new_region).value
-    return f"'{Region.from_platform(new_region).region.value[1]} ({Region.from_platform(new_region).region.value[0]})' selected as default."
+    msg = f"{Region.from_platform(new_region).region.value[1]} ({Region.from_platform(new_region).region.value[0]})"
+    desc = "Selected as default region."
+    platform = Region.from_platform(new_region).region.value[0]
+    return (msg, desc, platform)
 
 def set_summoner(data):
     global summoner
@@ -77,6 +82,25 @@ def fetchSummoner(name: str):
         level = 'Lvl. ' + str(summoner['summonerLevel'])
 
         return (id, puuid, name, profileIcon, level)
+    except ApiError as error:
+        if error.response.status_code == 404:
+            return f"'{name}': Summoner not found"
+        elif error.response.status_code == 429:
+            return 'Riot Games API key rate limit reached'
+        elif error.response.status_code == 403:
+            return 'Riot Games API key expired'
+        else: raise
+
+def fetchSummonerRegion(name: str, _region: str):
+    """ fetch a summoner by name """
+    try:
+        summoner = watcher.summoner.by_name(_region, name)
+
+        id = summoner['id']
+        puuid = summoner['puuid']
+        name = summoner['name']
+
+        return (id, puuid, name)
     except ApiError as error:
         if error.response.status_code == 404:
             return f"'{name}': Summoner not found"
@@ -505,4 +529,7 @@ def requestMatchHistory():
 
 
 # TODO: fetch summoner light: region, name, current lp, lp wins/losses, champion, kda 
+def requestLP(name: str):
+    r = ranks[0]
+
 
