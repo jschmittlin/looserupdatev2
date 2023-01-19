@@ -3,7 +3,7 @@
 
 A personnal discord bot using  Riot Games League of Legends API (https://developer.riotgames.com/).
 
-LooverUpdateV2 manages an information panel in a text channel which displays whether my friend are played a Ranked game.  It also sends information messages about player.
+LooserUpdateV2 manages an information panel in a text channel which displays whether my friend are played a Ranked game.  It also sends information messages about player.
 
 ## Built with
 
