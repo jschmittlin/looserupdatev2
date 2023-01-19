@@ -3,6 +3,8 @@ import json
 import requests
 
 item_undefined = []
+update_player = []
+UPDATE_MAX = 5
 
 class Region(Enum):
     brazil = ['BR', 'BRAZIL']

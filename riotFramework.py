@@ -4,12 +4,12 @@ import requests
 from datetime import datetime, timedelta
 
 import os
+from dotenv import load_dotenv
+load_dotenv()
 
 # Data & Resources
 from data import Region, Platform, ddragon, Champion, Challenges, Summoner
 from resources import Emoji, Icon
-
-from response import MyEmbed, MyView
 
 # Riot
 from riotwatcher import LolWatcher, ApiError
@@ -28,6 +28,13 @@ matchList = None
 history = None
 match = None
 match_select = None
+
+
+MATCH_COUNT = 5
+error_msg = {
+'001a':"\nWE DIDN'T FIND ANY MATCHES FOR THIS PLAYER.\nTHIS MIGHT BE BECAUSE...",
+'001b':f"{Emoji.blank}• This summoner hasn't played any ranked matches\n{Emoji.blank}• This summoner isn't fiends with the bot (and thus bot can't see{Emoji.blank} \u200b  \u200b their matches)\n{Emoji.blank}• This summoner hasn't played any matches since May 1st",
+}
 
 
 def resetGlobal():
@@ -70,10 +77,31 @@ def get_match(): return match
 def get_match_select(): return match_select
 
 
-def fetchSummoner(name: str):
+def fetchSummonerName(name: str):
     """ fetch a summoner by name """
     try:
         summoner = watcher.summoner.by_name(region, name)
+
+        id = summoner['id']
+        puuid = summoner['puuid']
+        name = summoner['name']
+        profileIcon = ddragon.url_profileicon + str(summoner['profileIconId']) + '.png'
+        level = 'Lvl. ' + str(summoner['summonerLevel'])
+
+        return (id, puuid, name, profileIcon, level)
+    except ApiError as error:
+        if error.response.status_code == 404:
+            return f"'{name}': Summoner not found"
+        elif error.response.status_code == 429:
+            return 'Riot Games API key rate limit reached'
+        elif error.response.status_code == 403:
+            return 'Riot Games API key expired'
+        else: raise
+
+def fetchSummonerPuuid(puuid: str):
+    """ fetch a summoner by name """
+    try:
+        summoner = watcher.summoner.by_puuid(region, puuid)
 
         id = summoner['id']
         puuid = summoner['puuid']
@@ -99,8 +127,10 @@ def fetchSummonerRegion(name: str, _region: str):
         id = summoner['id']
         puuid = summoner['puuid']
         name = summoner['name']
+        profileIcon = ddragon.url_profileicon + str(summoner['profileIconId']) + '.png'
+        level = 'Lvl. ' + str(summoner['summonerLevel'])
 
-        return (id, puuid, name)
+        return (id, puuid, name, profileIcon, level)
     except ApiError as error:
         if error.response.status_code == 404:
             return f"'{name}': Summoner not found"
@@ -197,10 +227,10 @@ def fetchChallenges(puuid: str):
             return 'Riot Games API key expired'
         else: raise
 
-def fetchMatchList(puuid: str):
+def fetchMatchList(puuid: str, count: int):
     """ fetch the match list of a summoner """
     try:
-        return watcher.match.matchlist_by_puuid(region, puuid, 0, 5)
+        return watcher.match.matchlist_by_puuid(region, puuid, 0, count)
     except ApiError as error:
         if error.response.status_code == 404:
             return f"'{puuid}': Summoner not found"
@@ -264,7 +294,7 @@ def fetchMatch(matchId: str, puuid: str):
             'gameID': gameID
         }
 
-        print(match['metadata']['matchId'])
+        # print(match['metadata']['matchId'])
 
         team1, team2, team_tmp = [], [], []
         for participant in match['info']['participants']:
@@ -455,17 +485,13 @@ def requestProfile():
     masteries = _masteries
     challenges = _challenges
 
-error_msg = {
-'001a':"\nWE DIDN'T FIND ANY MATCHES FOR THIS PLAYER.\nTHIS MIGHT BE BECAUSE...",
-'001b':f"{Emoji.blank}• This summoner hasn't played any ranked matches\n{Emoji.blank}• This summoner isn't fiends with the bot (and thus bot can't see{Emoji.blank} \u200b  \u200b their matches)\n{Emoji.blank}• This summoner hasn't played any matches since May 1st",
-}
 
 def requestMatchHistory():
     """ request match history of a summoner """
     if summoner == None: return 'Summoner Name missing'
 
     # Summoner History List
-    matchId = fetchMatchList(summoner[1])
+    matchId = fetchMatchList(summoner[1], MATCH_COUNT)
     if isinstance(matchId, str): return matchId
 
     # Summoner Match History
@@ -528,8 +554,55 @@ def requestMatchHistory():
         ]
 
 
-# TODO: fetch summoner light: region, name, current lp, lp wins/losses, champion, kda 
-def requestLP(name: str):
-    r = ranks[0]
+def strAdd(str):
+    if "0/10" in str: return str.replace("0/10", "1/10")
+    if "1/10" in str: return str.replace("1/10", "2/10")
+    if "2/10" in str: return str.replace("2/10", "3/10")
+    if "3/10" in str: return str.replace("3/10", "4/10")
+    if "4/10" in str: return str.replace("4/10", "5/10")
+    if "5/10" in str: return str.replace("5/10", "6/10")
+    if "6/10" in str: return str.replace("6/10", "7/10")
+    if "7/10" in str: return str.replace("7/10", "8/10")
+    if "8/10" in str: return str.replace("8/10", "9/10")
+    if "9/10" in str: return str.replace("9/10", "10/10")
+
+def updateRank(player: list):
+    try: matchId = fetchMatchList(player[3], 1)[0]
+    except: return "Match not found"
+    if matchId == player[5]: return "No new match"
+    match = fetchMatch(matchId, player[3])
+    if (match[0]['gameDescription'] != "Ranked Solo/Duo"): return "Not a ranked match"
+
+    player[5] = matchId # Update match ID
+    rank = fetchRanks(player[2])[0] # Get new rank
+    rank.remove(rank[0])
+
+    # Calculate LP change
+    try:
+        win = match[1]['win']
+        lp = abs(int(rank[2]) - int(player[4][2]))
+        if win: lp = "+" + str(lp) + " LP"
+        else: lp = "-" + str(lp) + " LP"
+
+        if player[4][2] == 100 and rank[2] == 100: lp = "Promotion Series"
+
+        if player[4][1] != rank[1] and win: lp = "PROMOTED TO " + rank[0] + " " + rank[1]
+        if player[4][1] != rank[1] and not win: lp = "DEMOTE TO " + rank[0] + " " + rank[1]
+
+        if player[4][0] != rank[0] and win: lp = "PROMOTED TO " + rank[0] + " " + rank[1]
+        if player[4][0] != rank[0] and not win: lp = "DEMOTE TO " + rank[0] + " " + rank[1]
+
+        if "PLACEMENTS" in player[7] and player[4][0] == "UNRANKED": lp = strAdd(player[7])
+        if "PLACEMENTS 10/10" in player[7] and player[4][0] == "UNRANKED": lp = "PLACED INTO " + rank[0] + " " + rank[1]
+    except: lp = "PLACEMENTS 0/10"
+
+    player[7] = lp      # Update match result
+    player[4] = rank    # Update rank
+
+    # Update Summoner Name
+    summoner = fetchSummonerPuuid(player[3])
+    player[1] = summoner[2]
+
+    return match
 
 

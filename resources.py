@@ -1,4 +1,5 @@
 class Icon:
+    emrata = 'https://cdn.discordapp.com/attachments/598865284786552852/1037836694327672952/EMRATA_008a.jpg'
     nav_profile = 'https://cdn.discordapp.com/attachments/598865284786552852/1039235266428284948/nav-icon-profile.png'
     error = 'https://cdn.discordapp.com/attachments/598865284786552852/1039234765355761755/alpha_watermark_vector.png'
     error_image = 'https://cdn.discordapp.com/attachments/1039594104759271428/1063602226729340928/EMRATA_024a.jpg'
