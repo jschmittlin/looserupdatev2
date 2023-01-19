@@ -402,6 +402,7 @@ class MyEmbed:
         embed.set_thumbnail(url=Icon.poro_voice)
         embed.add_field(name="help", value="```List of commands```", inline=False)
         embed.add_field(name="profile", value="```View selected summoner profile```", inline=False)
+        embed.add_field(name="set-region", value="```Set the server's region```", inline=False)
         embed.add_field(name="setting", value="```View setting```", inline=False)
         embed.add_field(name="add-player", value="```Add player to the Update list```", inline=False)
         embed.add_field(name="delete-player", value="```Delete all players from the Update list```", inline=False)

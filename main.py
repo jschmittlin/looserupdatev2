@@ -97,7 +97,7 @@ client = MyClient()
 
 
 
-@client.tree.command(name="region", description="Sets the server's region.")
+@client.tree.command(name="set-region", description="Set the server's region.")
 @app_commands.describe(region="Region")
 @app_commands.choices(region = [
     app_commands.Choice(name="Brazil (BR)", value="BR"),
@@ -117,7 +117,7 @@ client = MyClient()
     app_commands.Choice(name="Taiwan (TW)", value="TW"),
     app_commands.Choice(name="Vietnam (VN)", value="VN"),
 ])
-async def region(interaction: discord.Interaction, region: app_commands.Choice[str]):
+async def set_region(interaction: discord.Interaction, region: app_commands.Choice[str]):
     await interaction.response.defer()
     msg = set_region(region.value)
     Data.set_author(interaction.user.name, interaction.user.avatar.url)
