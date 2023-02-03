@@ -580,21 +580,27 @@ def updateRank(player: list):
     # Calculate LP change
     try:
         win = match[1]['win']
-        lp = abs(int(rank[2]) - int(player[4][2]))
+
+        try: last_lp = int(player[4][2])
+        except: last_lp = 0
+        try: current_lp = int(rank[2])
+        except: current_lp = 0
+
+        lp = abs(current_lp - last_lp)
         if win: lp = "+" + str(lp) + " LP"
         else: lp = "-" + str(lp) + " LP"
 
         if player[4][2] == 100 and rank[2] == 100: lp = "Promotion Series"
 
-        if player[4][1] != rank[1] and win: lp = "PROMOTED TO " + rank[0] + " " + rank[1]
-        if player[4][1] != rank[1] and not win: lp = "DEMOTE TO " + rank[0] + " " + rank[1]
+        if player[4][1] != rank[1] and win: lp = "PROMOTED TO " + str(rank[0]) + " " + str(rank[1])
+        if player[4][1] != rank[1] and not win: lp = "DEMOTE TO " + str(rank[0]) + " " + str(rank[1])
 
-        if player[4][0] != rank[0] and win: lp = "PROMOTED TO " + rank[0] + " " + rank[1]
-        if player[4][0] != rank[0] and not win: lp = "DEMOTE TO " + rank[0] + " " + rank[1]
+        if player[4][0] != rank[0] and win: lp = "PROMOTED TO " + str(rank[0]) + " " + str(rank[1])
+        if player[4][0] != rank[0] and not win: lp = "DEMOTE TO " + str(rank[0]) + " " + str(rank[1])
 
         if "PLACEMENTS" in player[7] and player[4][0] == "UNRANKED": lp = strAdd(player[7])
-        if "PLACEMENTS 10/10" in player[7] and player[4][0] == "UNRANKED": lp = "PLACED INTO " + rank[0] + " " + rank[1]
-    except: lp = "PLACEMENTS 0/10"
+        if "PLACEMENTS 10/10" in player[7] and player[4][0] == "UNRANKED": lp = "PLACED INTO " + str(rank[0]) + " " + str(rank[1])
+    except Exception as e: lp = "PLACEMENTS 0/10"
 
     player[7] = lp      # Update match result
     player[4] = rank    # Update rank
@@ -604,5 +610,3 @@ def updateRank(player: list):
     player[1] = summoner[2]
 
     return match
-
-

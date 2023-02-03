@@ -3,8 +3,49 @@ import json
 import requests
 
 item_undefined = []
-update_player = []
-UPDATE_MAX = 5
+
+# pandas
+import pandas as pd
+
+class UpdatePlayer():
+    file = 'players.xlsx'
+    max = 5    
+    data = []
+
+    @staticmethod
+    def save(data):
+        try:
+            df = pd.DataFrame(data, columns=["Region", "Summoner Name", "ID", "PUUID", "Ranks", "Match ID", "Profile Icon", "Resume"])
+            df.to_excel(UpdatePlayer.file, index=False, header=True)
+            return True
+        except Exception as error: return error
+
+    @staticmethod
+    def load():
+        try:
+            df = pd.read_excel(UpdatePlayer.file)
+            UpdatePlayer.data.clear()
+            for index, row in df.iterrows():
+                player = []
+                player.append(row["Region"])        # 0: Region
+                player.append(row["Summoner Name"]) # 1: Summoner Name
+                player.append(row["ID"])            # 2: ID
+                player.append(row["PUUID"])         # 3: PUUID
+                player.append(row["Ranks"])         # 4: Ranks
+                player.append(row["Match ID"])      # 5: Match ID
+                player.append(row["Profile Icon"])  # 6: Profile Icon
+                player.append(row["Resume"])        # 7: Resume Games Ranks
+                UpdatePlayer.data.append(player)
+            return UpdatePlayer.data
+        except Exception as error: return error
+
+    @staticmethod
+    def delete():
+        try:
+            UpdatePlayer.data.clear()
+            return UpdatePlayer.save(UpdatePlayer.data)
+        except Exception as error: return error
+
 
 class Region(Enum):
     brazil = ['BR', 'BRAZIL']

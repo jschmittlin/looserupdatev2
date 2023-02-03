@@ -7,7 +7,7 @@ import random
 # Discord bot
 import discord
 from discord import app_commands
-from discord.ext import commands, tasks
+from discord.ext import tasks
 
 # Riot Framework
 from riotFramework import *
@@ -16,7 +16,8 @@ from riotFramework import *
 from response import MyEmbed, MyViewProfile, MyViewUpdateMatch, Data
 
 # data
-from data import update_player, UPDATE_MAX
+from data import UpdatePlayer
+UpdatePlayer.load()
 
 import os
 from dotenv import load_dotenv
@@ -76,8 +77,9 @@ class MyClient(discord.Client):
     async def update_player_task(self):
         user = await self.fetch_user(USER)
         channel = self.get_channel(CHANNEL)
-        if len(update_player) == 0: return
-        for player in update_player:
+        data = UpdatePlayer.load()
+        if len(data) == 0: return
+        for player in data:
             match = updateRank(player)
             if not isinstance(match, str):
                 embed = MyEmbed.history_light(match, player)
@@ -188,8 +190,17 @@ async def profile(interaction: discord.Interaction, name: str):
 @app_commands.checks.has_any_role(ROLE_ADMIN_01, ROLE_ADMIN_02)
 async def add_player(interaction: discord.Interaction, name: str, region: app_commands.Choice[str]):
     Data.set_author(interaction.user.name, interaction.user.avatar.url)
+
+    # Update Player List
+    data = UpdatePlayer.load()
+
+    # Check if player is already in the list
+    for player in data:
+        if player[0] == region.value and player[1].lower() == name.lower():
+            return await interaction.response.send_message(embed=MyEmbed.system("Player is already in the list.", "Please remove the player from the list first."), ephemeral=True)
+
     try:
-        if len(update_player) >= UPDATE_MAX: return await interaction.response.send_message(embed=MyEmbed.system("Update list is full.", "Please remove some players from the list."), ephemeral=True)
+        if len(data) >= UpdatePlayer.max: return await interaction.response.send_message(embed=MyEmbed.system("Update list is full.", "Please remove some players from the list."), ephemeral=True)
 
         # Summoner Profile
         summoner = fetchSummonerRegion(name, Region.from_platform(region.value).value)
@@ -215,27 +226,27 @@ async def add_player(interaction: discord.Interaction, name: str, region: app_co
         player.append(summoner[3])          # 6: Profile Icon
         player.append("PLACEMENTS 0/10")    # 7: Resume Games Ranks
         
-        update_player.append(player)
+        data.append(player)
+        UpdatePlayer.save(data)
 
         await interaction.followup.send(embed=MyEmbed.success(f"{summoner[2]} #{region.value}", "Added to the Update list."))
-    except Exception as error: await interaction.followup.send(embed=MyEmbed.system("", error), ephemeral=True)
+    except Exception as error: return await interaction.response.send_message(embed=MyEmbed.system(" ", error), ephemeral=True)
 
 
-@client.tree.command(name="delete-player", description="Delete all setting.")
+@client.tree.command(name="delete-player", description="Delete all players from the Update list.")
 @app_commands.checks.has_any_role(ROLE_ADMIN_01, ROLE_ADMIN_02)
 async def delete_player(interaction: discord.Interaction):
-    await interaction.response.defer()
+    UpdatePlayer.delete()
+    riotFramework.set_region("EUW") # Default Region
     Data.set_author(interaction.user.name, interaction.user.avatar.url)
-    update_player.clear()
-    set_region(new_region="EUW") # Default Region
-    await interaction.followup.send(embed=MyEmbed.success("All setting has been deleted.", " "))
+    await interaction.response.send_message(embed=MyEmbed.success("All players has been deleted.", " "))
 
 
 @client.tree.command(name="setting", description="View setting.")
 async def setting(interaction: discord.Interaction):
     region = Region.from_platform(get_region()).region
     Data.set_author(interaction.user.name, interaction.user.avatar.url)
-    await interaction.response.send_message(embed=MyEmbed.setting((region.value[1], region.value[0]), update_player, UPDATE_MAX), ephemeral=True)
+    await interaction.response.send_message(embed=MyEmbed.setting((region.value[1], region.value[0]), UpdatePlayer.load(), UpdatePlayer.max), ephemeral=True)
 
 
 @client.tree.command(name="dm", description="Send a message to a user.")
