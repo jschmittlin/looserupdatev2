@@ -2,8 +2,6 @@ from enum import Enum
 import json
 import requests
 
-item_undefined = []
-
 # pandas
 import pandas as pd
 
@@ -27,14 +25,14 @@ class UpdatePlayer():
             UpdatePlayer.data.clear()
             for index, row in df.iterrows():
                 player = []
-                player.append(row["Region"])        # 0: Region
-                player.append(row["Summoner Name"]) # 1: Summoner Name
-                player.append(row["ID"])            # 2: ID
-                player.append(row["PUUID"])         # 3: PUUID
-                player.append(row["Ranks"])         # 4: Ranks
-                player.append(row["Match ID"])      # 5: Match ID
-                player.append(row["Profile Icon"])  # 6: Profile Icon
-                player.append(row["Resume"])        # 7: Resume Games Ranks
+                player.append(row["Region"])                                                                    # 0: Region
+                player.append(row["Summoner Name"])                                                             # 1: Summoner Name
+                player.append(row["ID"])                                                                        # 2: ID
+                player.append(row["PUUID"])                                                                     # 3: PUUID
+                player.append(row["Ranks"].replace("'", "").replace("[", "").replace("]", "").split(", "))      # 4: Ranks
+                player.append(row["Match ID"])                                                                  # 5: Match ID
+                player.append(row["Profile Icon"])                                                              # 6: Profile Icon
+                player.append(row["Resume"])                                                                    # 7: Resume Games Ranks
                 UpdatePlayer.data.append(player)
             return UpdatePlayer.data
         except Exception as error: return error
@@ -75,8 +73,7 @@ class Region(Enum):
             for i in Region:
                 if region.upper() in i.value:
                     return i.platform
-        except:
-            return None
+        except: return None
 
 class Platform(Enum):
     brazil = 'BR1'
@@ -102,10 +99,11 @@ class Platform(Enum):
 
     @staticmethod
     def from_region(region: str) -> Region:
-        try:
-            return region.platform
-        except AttributeError:
-            return Platform(region).region
+        try: return region.platform
+        except AttributeError: return Platform(region).region
+
+
+item_undefined = []
 
 class ddragon:
     url_version = 'https://ddragon.leagueoflegends.com/api/versions.json'
@@ -117,34 +115,55 @@ class ddragon:
     url_queues = 'https://static.developer.riotgames.com/docs/lol/queues.json'
     url_runesReforged = f'http://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/runesReforged.json'
     url_summoner = f'http://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/summoner.json'
+    url_item = f'http://ddragon.leagueoflegends.com/cdn/{version}/img/item/'
+
+
+    @staticmethod
+    def get_champion() -> dict:
+        return requests.get(ddragon.url_champion).json()
+
+    @staticmethod
+    def get_challenges() -> dict:
+        return requests.get(ddragon.url_challenges).json()
+
+    @staticmethod
+    def get_queues() -> dict:
+        return requests.get(ddragon.url_queues).json()
+    
+    @staticmethod
+    def get_runesReforged() -> dict:
+        return requests.get(ddragon.url_runesReforged).json()
+
+    @staticmethod
+    def get_summoner() -> dict:
+        return requests.get(ddragon.url_summoner).json()
+
+    @staticmethod
+    def get_item(id: int) -> str:
+        return f'{ddragon.url_item}{id}.png'
+
 
 class Champion():
     @staticmethod
     def from_id(id: int):
         try:
-            data = requests.get(ddragon.url_champion).json()['data']
+            data = ddragon.get_champion()['data']
             for champion in data:
                 if data[champion]['key'] == str(id):
                     name = data[champion]['name']
-                    try:
-                        name = FIX_NAMES[name]
-                    except KeyError:
-                        pass
-                    return name
-        except:
-            return None
+                    return FIX_NAMES[name] if name in FIX_NAMES else name
+        except Exception as error:
+            return error
 
     @staticmethod
     def fix_name(string: str):
-        try:
-            return FIX_NAMES[string]
-        except KeyError:
-            return string
+        try: return FIX_NAMES[string]
+        except KeyError: return string
 
 FIX_NAMES = {
     'AurelionSol': 'Aurelion Sol',
     'Belveth': "Bel'veth",
-    'ChoGath': "Cho'Gath",
+    'Chogath': "Cho'Gath",
     'DrMundo': 'Dr. Mundo',
     'Fiddlesticks': 'FiddleSticks',
     'JarvanIV': 'Jarvan IV',
@@ -171,13 +190,11 @@ class Challenges():
         try:
             challengeId = int(id[:-2])
             tierId = CHALLENGES_TIER_IDS[int(id[-1])]
-
-            data = requests.get(ddragon.url_challenges).json()
+            data = ddragon.get_challenges()
             for challenge in data:
                 if challenge['id'] == challengeId:
                     return challenge['thresholds'][tierId]['rewards'][0]['title']
-        except:
-            return None
+        except: return None
 
 CHALLENGES_TIER_IDS = {
     0:'IRON',
@@ -198,14 +215,12 @@ class Queue():
     @staticmethod
     def from_id(id: int):
         try:
-            data = requests.get(ddragon.url_queues).json()
+            data = ddragon.get_queues()
             for queue in data:
                 if queue['queueId'] == id:
-                    map = queue['map']
-                    description = queue['description']
-                    return (map, Queue.filter(description))
-        except:
-            return None
+                    Queue.map = queue['map']
+                    Queue.description = Queue.filter(queue['description'])
+        except: pass
 
     @staticmethod
     def filter(string: str) -> str:
@@ -242,10 +257,8 @@ class Rune(Enum):
 
     @staticmethod
     def from_league(string: str):
-        try:
-            return Rune[string.replace(' ','_').lower()]
-        except KeyError:
-            return Rune.none
+        try: return Rune[string.replace(' ','_').lower()]
+        except KeyError: return Rune.none
 
 class Summoner(Enum):
     barrier = 'SummonerBarrier'
@@ -268,13 +281,11 @@ class Summoner(Enum):
 
     @staticmethod
     def from_key(key: int):
-        try:
-            return {i: summoner for summoner, i in KEYS.items()}[key]
-        except KeyError:
-            return Summoner.none
+        try: return {i: summoner for summoner, i in KEYS.items()}[key]
+        except KeyError: return Summoner.none
 
     @property
-    def key(self):
+    def key(self): 
         return KEYS[self]
 
 KEYS = {

@@ -9,6 +9,9 @@ from discord.ui import View, button, Select
 # Resources
 from resources import Emoji, Icon, Color
 
+# Data
+from data import item_undefined
+
 
 def replaceSpaces(string: str):
     """ replace spaces with underscores """
@@ -29,93 +32,124 @@ def spacing(rank: str, wins: int, losses: int):
     return spaces
 
 
-authorName = None
-authorIcon = None
-region = None
-summoner = None
-ranks = None
-masteryScore = None
-masteries = None
-challenges = None
-history = None
-match = None
-match_select = None
-
-class Data:
-
-    def set_author(name, icon):
-        global authorName, authorIcon
-        authorName = name
-        authorIcon = icon
-
-    def update(_region, _summoner, _ranks, _masteryScore, _masteries, _challenges, _history, _match, _match_select):
-        global region, summoner, ranks, masteryScore, masteries, challenges, history, match, match_select
-        region = _region
-        summoner = _summoner
-        ranks = _ranks
-        masteryScore = _masteryScore
-        masteries = _masteries
-        challenges = _challenges
-        history = _history
-        match = _match
-        match_select = _match_select
-
 class MyEmbed:
     """ Embed for the bot """
+    def __init__(self):
+        super().__init__()
+        self.embed_profile = None
+        self.embed_history = None
+        self.embed_history_light = None
 
-    def profile():
+    def init_data(self, region, summoner, ranks, mastery_score, masteries, challenges, history, match):
+        self.region = region.get('region').value[0]
+        self.name = summoner.get('name')
+        self.level = summoner.get('level')
+        self.icon = summoner.get('profile_icon')
+        self.solo = ranks.get('solo')
+        self.flex = ranks.get('flex')
+        self.mastery_score = mastery_score
+        self.masteries = masteries
+        self.challenges = challenges
+        self.history = history
+        self.match = match
+
+    def set_data(self, region, name, level, icon, solo, flex, mastery_score, masteries, challenges, history, match):
+        self.region = region
+        self.name = name
+        self.level = level
+        self.icon = icon
+        self.solo = solo
+        self.flex = flex
+        self.mastery_score = mastery_score
+        self.masteries = masteries
+        self.challenges = challenges
+        self.history = history
+        self.match = match
+
+    def get_data(self):
+        return self.region, self.name, self.level, self.icon, self.solo, self.flex, self.mastery_score, self.masteries, self.challenges, self.history, self.match, self.match_select
+
+    def profile_embed(self):
         """ profile embed """
-        try: description = f'{summoner[4]} \u200b | \u200b {challenges[0]}'
-        except: description = summoner[4]
+        if self.challenges is not None:
+            description = f'{self.level} \u200b | \u200b {self.challenges[0]}'
+        else:
+            description = f'{self.level}'
         
-        try: opgg = f'https://www.op.gg/summoners/{region}/{replaceSpaces(summoner[2])}'
-        except: opgg = f'https://www.op.gg/'
+        try:
+            opgg = f'https://www.op.gg/summoners/{self.region}/{replaceSpaces(self.name)}'
+        except:
+            opgg = f'https://www.op.gg/'
 
-        embed = discord.Embed(title=f'**{summoner[2]} \u200b #{region}**', url=opgg, description=description, color=Color.default, timestamp=datetime.utcnow())
-        embed.set_thumbnail(url=summoner[3])
-        embed.set_author(name=f'Summoner \u200b Profile \u200b \u200b • \u200b \u200b OVERVIEW', icon_url=Icon.nav_profile)
-        embed.set_footer(text=authorName, icon_url=authorIcon)
+        embed = discord.Embed(
+            title=f'**{self.name} \u200b #{self.region}**',
+            url=opgg,
+            description=description,
+            color=Color.default,
+        )
+        embed.set_author(
+            name=f'Summoner \u200b Profile \u200b \u200b • \u200b \u200b OVERVIEW',
+            icon_url=Icon.nav_profile
+        )
+        embed.set_thumbnail(url=self.icon)
 
         # Rank Solo/Duo & Flex
-        value_solo = value_flex = f'{Emoji.tier["UNRANKED"]} \u200b **Unranked** \n{Emoji.blank}'
+        value_solo = f'{Emoji.tier["UNRANKED"]} \u200b **Unranked** \n{Emoji.blank}'
+        value_flex = f'{Emoji.tier["UNRANKED"]} \u200b **Unranked** \n{Emoji.blank}'
 
-        if ranks[0][0] != None:
-            spaces_solo = spacing(ranks[0][1], ranks[0][4], ranks[0][5])
-            value_solo = f'{Emoji.tier[ranks[0][1]]} \u200b **{ranks[0][1]} {ranks[0][2]}**{spaces_solo}{ranks[0][3]} LP\n'
-            value_solo += f'**Win Rate {percent(ranks[0][4], ranks[0][5])}%** {Emoji.blank} {ranks[0][4]}W / {ranks[0][5]}L\n{Emoji.blank}'
-        if ranks[1][0] != None:
-            spaces_flex = spacing(ranks[0][1], ranks[0][4], ranks[0][5])
-            value_flex = f'{Emoji.tier[ranks[0][1]]} \u200b **{ranks[0][1]} {ranks[0][2]}**{spaces_flex}{ranks[0][3]} LP\n'
-            value_flex += f'**Win Rate {percent(ranks[0][4],ranks[0][5])}%** {Emoji.blank} {ranks[0][4]}W / {ranks[0][5]}L\n{Emoji.blank}'
+        if self.solo[0] is not None:
+            spaces_solo = spacing(self.solo[1], self.solo[4], self.solo[5])
+            value_solo = f'{Emoji.tier[self.solo[1]]} \u200b **{self.solo[1]} {self.solo[2]}**{spaces_solo}{self.solo[3]} LP\n'
+            value_solo += f'**Win Rate {percent(self.solo[4], self.solo[5])}%** {Emoji.blank} {self.solo[4]}W / {self.solo[5]}L\n{Emoji.blank}'
+        if self.flex[0] is not None:
+            spaces_flex = spacing(self.flex[1], self.flex[4], self.flex[5])
+            value_flex = f'{Emoji.tier[self.flex[1]]} \u200b **{self.flex[1]} {self.flex[2]}**{spaces_flex}{self.flex[3]} LP\n'
+            value_flex += f'**Win Rate {percent(self.flex[4],self.flex[5])}%** {Emoji.blank} {self.flex[4]}W / {self.flex[5]}L\n{Emoji.blank}'
 
         embed.add_field(name='SOLO/DUO', value=value_solo, inline=True)
         embed.add_field(name='FLEX 5V5', value=value_flex, inline=True)
 
         # Mastery Score
-        embed.add_field(name='MASTERY \u200b SCORE', value=f'{Emoji.mastery["default"]} \u200b **{masteryScore}**\n{Emoji.blank}', inline=False)
+        embed.add_field(
+            name='MASTERY \u200b SCORE',
+            value=f'{Emoji.mastery["default"]} \u200b **{self.mastery_score}**\n{Emoji.blank}',
+            inline=False
+        )
 
         # Champions Masteries
-        champion_mastery_1 = f'{Emoji.mastery[masteries[1][0]]} \u200b {Emoji.champion[masteries[0][0]]} \u200b **{masteries[0][0].upper()}** \n'
-        champion_mastery_1 += f'{Emoji.mastery["default"]} \u200b {masteries[2][0]} pts \n{Emoji.blank}'
-        champion_mastery_2 = f'{Emoji.mastery[masteries[1][1]]} \u200b {Emoji.champion[masteries[0][1]]} \u200b **{masteries[0][1].upper()}** \n'
-        champion_mastery_2 += f'{Emoji.mastery["default"]} \u200b {masteries[2][1]} pts \n{Emoji.blank}'
-        champion_mastery_3 = f'{Emoji.mastery[masteries[1][2]]} \u200b {Emoji.champion[masteries[0][2]]} \u200b **{masteries[0][2].upper()}** \n'
-        champion_mastery_3 += f'{Emoji.mastery["default"]} \u200b {masteries[2][2]} pts \n{Emoji.blank}'
+        champion_masteries = []
+        for i in range(3):
+            champion_name = self.masteries.get('champion_names')[i]
+            champion_level = self.masteries.get('champion_levels')[i]
+            champion_point = self.masteries.get('champion_points')[i]
+            
+            champion_mastery = f'{Emoji.mastery[champion_level]} \u200b {Emoji.champion[champion_name]} \u200b **{champion_name.upper()}** \n'
+            champion_mastery += f'{Emoji.mastery["default"]} \u200b {champion_point} pts \n{Emoji.blank}'
+            
+            champion_masteries.append(champion_mastery)
 
-        embed.add_field(name='HIGHEST', value=champion_mastery_1, inline=True)
-        embed.add_field(name='CHAMPION', value=champion_mastery_2, inline=True)
-        embed.add_field(name='SCORE', value=champion_mastery_3, inline=True)
+        embed.add_field(name='HIGHEST', value=champion_masteries[0], inline=True)
+        embed.add_field(name='CHAMPION', value=champion_masteries[1], inline=True)
+        embed.add_field(name='SCORE', value=champion_masteries[2], inline=True)
 
+        self.embed_profile = embed
         return embed
 
-    def history():
+    def history_embed(self):
         """ history embed """
-        embed = discord.Embed(title=f'RECENT \u200b GAMES \u200b (LAST 5 PLAYED)', description='', color=Color.default)
-        embed.set_author(name=f'Summoner \u200b Profile \u200b \u200b • \u200b \u200b MATCH \u200b HISTORY', icon_url=Icon.nav_profile)
+        embed = discord.Embed(
+            title=f'RECENT \u200b GAMES \u200b (LAST 5 PLAYED)',
+            description='',
+            color=Color.default
+        )
+        embed.set_author(
+            name=f'Summoner \u200b Profile \u200b \u200b • \u200b \u200b MATCH \u200b HISTORY',
+            icon_url=Icon.nav_profile
+        )
 
-        for i in range(0, len(history)):
-            info = history[i][0]
-            data = history[i][1]
+        for match in self.history:
+            info = match[0]
+            data = match[1]
 
             if data['win']:
                 win = '**VICTORY**'
@@ -126,49 +160,63 @@ class MyEmbed:
                 if info['gameMap'] == 'Howling Abyss': emoji_map = Emoji.aram['defeat']
                 else: emoji_map = Emoji.sr['defeat']
 
-            try: position = Emoji.position[data['position']]
-            except: position = Emoji.position['FILL']
+            try:
+                position = Emoji.position[data['position']]
+            except:
+                position = Emoji.position['FILL']
 
             match_100 = f'{position} {info["gameDescription"]}\n'
             match_100 += f'{Emoji.champion[data["champion"]]} {Emoji.summoner[data["summonerSpells1"]]} {Emoji.summoner[data["summonerSpells2"]]}'
             match_100 += f'{Emoji.blank}{Emoji.blank}{Emoji.blank}'
+            
             match_001 = f'{info["gameMap"]}\n{info["gameDuration"]} \u200b  • \u200b <t:{info["gameEndTimestamp"]}:d>'
                 
-            try:
-                item0 = Emoji.item[data["items"][0]]
-                item1 = Emoji.item[data["items"][1]]
-                item2 = Emoji.item[data["items"][2]]
-                item3 = Emoji.item[data["items"][3]]
-                item4 = Emoji.item[data["items"][4]]
-                item5 = Emoji.item[data["items"][5]]
-                item6 = Emoji.item[data["items"][6]]
-            except: item0 = item1 = item2 = item3 = item4 = item5 = item6 = Emoji.item[0]
-
-            match_010 = f'{Emoji.blank}{item0} \u200b {item1} \u200b {item2} \u200b {item3} \u200b {item4} \u200b {item5} \u200b {item6}\n'
+            items = [Emoji.item.get(data["items"][i], Emoji.item[0]) for i in range(7)]
+            match_010 = f"{Emoji.blank}{' '.join(items)}\n"
             match_010 += f'**{data["kills"]} / {data["deaths"]} / {data["assists"]}{Emoji.blank}{data["cs"]}{Emoji.history["cs"]}{Emoji.blank}{data["gold"]}{Emoji.history["gold"]}**'
+
+            if match == self.history[-1]:
+                match_100 += f'\n{Emoji.blank}'
+                match_010 += f'\n{Emoji.blank}'
+                match_001 += f'\n{Emoji.blank}'
 
             embed.add_field(name=f'{emoji_map} {win}', value=match_100, inline=True)
             embed.add_field(name=Emoji.blank, value=match_010, inline=True)
             embed.add_field(name=Emoji.blank, value=match_001, inline=True)
 
+        self.embed_history = embed
         return embed
 
-    def history_light(match, player):
+    def history_light_embed(self, match, player):
         """ history embed (1 match) """
-        try: opgg = f'https://www.op.gg/summoners/{player[0]}/{replaceSpaces(player[1])}'
-        except: opgg = f'https://www.op.gg/'
+        try:
+            opgg = f'https://www.op.gg/summoners/{player[0]}/{replaceSpaces(player[1])}'
+        except:
+            opgg = f'https://www.op.gg/'
 
         title = f'{player[1]} \u200b #{player[0]}'
         try:
             desc = f'{Emoji.tier[player[4][0]]} \u200b **{player[4][0]} \u200b {player[4][1]}**{Emoji.blank}{player[4][2]} LP \u200b `{player[7]}`'
             desc += f'**{Emoji.blank}•{Emoji.blank}Win Rate \u200b {percent(player[4][3], player[4][4])}%**{Emoji.blank}{player[4][3]}W / {player[4][4]}L\n{Emoji.blank}'
-        except: desc = f'{Emoji.tier["UNRANKED"]} \u200b **Unranked**{Emoji.blank}`{player[7]}`\n{Emoji.blank}'
+        except Exception as error:
+            desc = f'{Emoji.tier["UNRANKED"]} \u200b **Unranked**{Emoji.blank}`{player[7]}`\n{Emoji.blank}'
 
-        if match[1]['win']: color = Color.victory
-        else: color = Color.defeat
+        if match[1]['win']:
+            color = Color.victory
+        else:
+            color = Color.defeat
 
-        embed = discord.Embed(title=title, description=desc, url=opgg, color=color, timestamp=datetime.utcnow())
-        embed.set_author(name=f'Summoner \u200b Profile \u200b \u200b • \u200b \u200b {player[1].upper()}', icon_url=player[6])
+        embed = discord.Embed(
+            title=title,
+            description=desc,
+            url=opgg,
+            color=color,
+            timestamp=datetime.utcnow()
+        )
+        embed.set_author(
+            name=f'Summoner \u200b Profile \u200b \u200b • \u200b \u200b {player[1].upper()}',
+            icon_url=player[6]
+        )
         embed.set_footer(text="LooserUpdateV2", icon_url=Icon.emrata)
 
         info = match[0]
@@ -191,17 +239,8 @@ class MyEmbed:
         match_100 += f'{Emoji.blank}{Emoji.blank}{Emoji.blank}\n{Emoji.blank}'
         match_001 = f'{info["gameMap"]}\n{info["gameDuration"]} \u200b  • \u200b <t:{info["gameEndTimestamp"]}:d>\n{Emoji.blank}'
             
-        try:
-            item0 = Emoji.item[data["items"][0]]
-            item1 = Emoji.item[data["items"][1]]
-            item2 = Emoji.item[data["items"][2]]
-            item3 = Emoji.item[data["items"][3]]
-            item4 = Emoji.item[data["items"][4]]
-            item5 = Emoji.item[data["items"][5]]
-            item6 = Emoji.item[data["items"][6]]
-        except: item0 = item1 = item2 = item3 = item4 = item5 = item6 = Emoji.item[0]
-
-        match_010 = f'{Emoji.blank}{item0} \u200b {item1} \u200b {item2} \u200b {item3} \u200b {item4} \u200b {item5} \u200b {item6}\n'
+        items = [Emoji.item.get(data["items"][i], Emoji.item[0]) for i in range(7)]
+        match_010 = f"{Emoji.blank}{' '.join(items)}\n"
         match_010 += f'**{data["kills"]} / {data["deaths"]} / {data["assists"]}{Emoji.blank}{data["cs"]}{Emoji.history["cs"]}{Emoji.blank}{data["gold"]}{Emoji.history["gold"]}**'
         match_010 += f'\n{Emoji.blank}'
 
@@ -209,9 +248,10 @@ class MyEmbed:
         embed.add_field(name=Emoji.blank, value=match_010, inline=True)
         embed.add_field(name=Emoji.blank, value=match_001, inline=True)
 
+        self.embed_history_light = embed
         return embed
 
-    def match(match):
+    def match_embed(self, match):
         """ match embed """
         if match[1]['win']:
             win = 'VICTORY'
@@ -244,31 +284,38 @@ class MyEmbed:
             try: item0 = Emoji.item[player['items'][0]]
             except: 
                 item0 = Emoji.item[0]
-                item_undefined.append(player['items'][0])
+                if player['items'][0] not in item_undefined:
+                    item_undefined.append(player['items'][0])
             try: item1 = Emoji.item[player['items'][1]]
             except:
                 item1 = Emoji.item[0]
-                item_undefined.append(player['items'][1])
+                if player['items'][1] not in item_undefined:
+                    item_undefined.append(player['items'][1])
             try: item2 = Emoji.item[player['items'][2]]
             except:
                 item2 = Emoji.item[0]
-                item_undefined.append(player['items'][2])
+                if player['items'][2] not in item_undefined:
+                    item_undefined.append(player['items'][2])
             try: item3 = Emoji.item[player['items'][3]]
             except:
                 item3 = Emoji.item[0]
-                item_undefined.append(player['items'][3])
+                if player['items'][3] not in item_undefined:
+                    item_undefined.append(player['items'][3])
             try: item4 = Emoji.item[player['items'][4]]
             except: 
                 item4 = Emoji.item[0]
-                item_undefined.append(player['items'][4])
+                if player['items'][4] not in item_undefined:
+                    item_undefined.append(player['items'][4])
             try: item5 = Emoji.item[player['items'][5]]
             except: 
                 item5 = Emoji.item[0]
-                item_undefined.append(player['items'][5])
+                if player['items'][5] not in item_undefined:
+                    item_undefined.append(player['items'][5])
             try: item6 = Emoji.item[player['items'][6]]
             except: 
                 item6 = Emoji.item[0]
-                item_undefined.append(player['items'][6])
+                if player['items'][6] not in item_undefined:
+                    item_undefined.append(player['items'][6])
             team1_champ += f'{position}{emoji_rune} **{player["level"]}** \u200b {Emoji.champion[player["champion"]]} \u200b {name}\n'
             team1_item += f'{item0} {item1} {item2} {item3} {item4} {item5} {item6}\n'
             team1_inv_kda += f'{Emoji.blank} \u200b  \u200b **{player["kills"]} \u200b / \u200b {player["deaths"]} \u200b / \u200b {player["assists"]}**\n'
@@ -305,31 +352,38 @@ class MyEmbed:
             try: item0 = Emoji.item[player['items'][0]]
             except: 
                 item0 = Emoji.item[0]
-                item_undefined.append(player['items'][0])
+                if player['items'][0] not in item_undefined:
+                    item_undefined.append(player['items'][0])
             try: item1 = Emoji.item[player['items'][1]]
             except:
                 item1 = Emoji.item[0]
-                item_undefined.append(player['items'][1])
+                if player['items'][1] not in item_undefined:
+                    item_undefined.append(player['items'][1])
             try: item2 = Emoji.item[player['items'][2]]
             except:
                 item2 = Emoji.item[0]
-                item_undefined.append(player['items'][2])
+                if player['items'][2] not in item_undefined:
+                    item_undefined.append(player['items'][2])
             try: item3 = Emoji.item[player['items'][3]]
             except:
                 item3 = Emoji.item[0]
-                item_undefined.append(player['items'][3])
+                if player['items'][3] not in item_undefined:
+                    item_undefined.append(player['items'][3])
             try: item4 = Emoji.item[player['items'][4]]
             except: 
                 item4 = Emoji.item[0]
-                item_undefined.append(player['items'][4])
+                if player['items'][4] not in item_undefined:
+                    item_undefined.append(player['items'][4])
             try: item5 = Emoji.item[player['items'][5]]
             except: 
                 item5 = Emoji.item[0]
-                item_undefined.append(player['items'][5])
+                if player['items'][5] not in item_undefined:
+                    item_undefined.append(player['items'][5])
             try: item6 = Emoji.item[player['items'][6]]
             except: 
                 item6 = Emoji.item[0]
-                item_undefined.append(player['items'][6])
+                if player['items'][6] not in item_undefined:
+                    item_undefined.append(player['items'][6])
             team2_champ += f'{position}{emoji_rune} **{player["level"]}** \u200b {Emoji.champion[player["champion"]]} \u200b {name}\n'
             team2_item += f'{item0} {item1} {item2} {item3} {item4} {item5} {item6}\n'
             team2_inv_kda += f'{Emoji.blank} \u200b  \u200b **{player["kills"]} \u200b / \u200b {player["deaths"]} \u200b / \u200b {player["assists"]}**\n'
@@ -353,72 +407,155 @@ class MyEmbed:
 
         return embed
 
-    def success(msg, desc):
-        embed = discord.Embed(title=f"```{msg}```", description=f"**{desc}**", color=Color.default, timestamp=datetime.utcnow())
+    def success(self, msg, desc):
+        """ Embed for success command """
+        embed = discord.Embed(
+            title=f"```{msg}```",
+            description=f"**{desc}**",
+            color=Color.default,
+            timestamp=datetime.utcnow()
+        )
         embed.set_author(name=f'COMMAND SUCCESS', icon_url=Icon.error)
-        embed.set_footer(text=authorName, icon_url=authorIcon)
         embed.set_thumbnail(url=Icon.poro_mission)
         return embed
 
-    def region(msg, desc, platform):
-        embed = discord.Embed(title=f"```{msg}```", description=f"**{desc}**", color=Color.default, timestamp=datetime.utcnow())
+    def region(self, new_region):
+        """ Embed for region command """
+        region = new_region.get('region')
+        embed = discord.Embed(
+            title=f"```{region.value[1]} ({region.value[0]})```",
+            description=f"**Selected as default region.**",
+            color=Color.default,
+            timestamp=datetime.utcnow()
+        )
         embed.set_author(name=f'COMMAND SUCCESS', icon_url=Icon.error)
-        embed.set_footer(text=authorName, icon_url=authorIcon)
-        embed.set_thumbnail(url=Icon.transfer[platform])
+        # embed.set_thumbnail(url=Icon.transfer[region.value[0]])
         return embed
 
-    def error(msg):
+    def error(self, msg):
+        """ Embed for command error """
         description = "Something went horribly wrong executing that command, please try again in a bit. If this error keeps happening, please send a bug report.\n\nTry '/help' for more information."
-        embed = discord.Embed(title=f'```{msg}```', description=description, color=Color.error, timestamp=datetime.utcnow())
+        embed = discord.Embed(
+            title=f'```{msg}```',
+            description=description,
+            color=Color.error,
+            timestamp=datetime.utcnow()
+        )
         embed.set_author(name=f'COMMAND ERROR', icon_url=Icon.error)
-        embed.set_footer(text=authorName, icon_url=authorIcon)
         embed.set_image(url=Icon.error_image)
         return embed
 
-    def system(msg, desc):
-        embed = discord.Embed(title=f"```{msg}```", description=f"**{desc}**", color=Color.error, timestamp=datetime.utcnow())
+    def error_match(self, msg, description):
+        """ Embed for match command error """
+        embed = discord.Embed(
+            title=f'{msg}',
+            description=f'**{description}**',
+            color=Color.error,
+            timestamp=datetime.utcnow()
+        )
         embed.set_author(name=f'COMMAND ERROR', icon_url=Icon.error)
-        embed.set_footer(text=authorName, icon_url=authorIcon)
         embed.set_thumbnail(url=Icon.poro_error)
         return embed
 
-    def setting(region, player, max):
-        embed = discord.Embed(title="Selected data will be the default value for profile, player to update.", description="", color=Color.default, timestamp=datetime.utcnow())
+    def system(self, msg, description):
+        """ Embed for system command """
+        embed = discord.Embed(
+            title=f"```{msg}```",
+            description=f"**{description}**",
+            color=Color.error,
+            timestamp=datetime.utcnow()
+        )
+        embed.set_author(name=f'COMMAND ERROR', icon_url=Icon.error)
+        embed.set_thumbnail(url=Icon.poro_error)
+        return embed
+
+    def setting(self, region, players, max):
+        """ Embed for setting command """
+        embed = discord.Embed(
+            title="Selected data will be the default value for profile, player to update.",
+            description="",
+            color=Color.default,
+            timestamp=datetime.utcnow()
+        )
         embed.set_author(name=f'SETTINGS', icon_url=Icon.setting)
-        embed.set_footer(text=authorName, icon_url=authorIcon)
-        embed.add_field(name="REGION", value=f"```{region[0]} ({region[1]})```", inline=False)
+        embed.add_field(
+            name="REGION",
+            value=f"```{region[0]} ({region[1]})```",
+            inline=False
+        )
         value_player = ""
-        for x in player:
-            try: value_player += f"```{x[1]} #{x[0]}\n{x[4][0]} {x[4][1]} • {x[4][2]} LP | Win Rate {percent(x[4][3], x[4][4])}% • [{x[4][3]}W / {x[4][4]}L]```"
-            except: value_player += f"```{x[1]} #{x[0]}\nUnranked```"
-        if len(player) == 0: value_player = "``` ```"
-        embed.add_field(name=f"PLAYER (Max. {max})", value=f"{value_player}", inline=False)
+        for p in players:
+            try:
+                value_player += f"```{p[1]} #{p[0]}\n{p[4][0]} {p[4][1]} • {p[4][2]} LP | Win Rate {percent(int(p[4][3]), int(p[4][4]))}% • [{p[4][3]}W / {p[4][4]}L]```"
+            except:
+                value_player += f"```{p[1]} #{p[0]}\nUnranked```"
+        if len(players) == 0: value_player = "``` ```"
+        embed.add_field(
+            name=f"PLAYER (Max. {max})",
+            value=f"{value_player}",
+            inline=False
+        )
         return embed
 
-    def help():
-        embed = discord.Embed(title="List of commands", description="", color=Color.default, timestamp=datetime.utcnow())
+    def help(self):
+        """ List of commands """
+        embed = discord.Embed(
+            title="List of commands",
+            description="",
+            color=Color.default,
+            timestamp=datetime.utcnow()
+        )
         embed.set_author(name=f'HELP', icon_url=Icon.book)
-        embed.set_footer(text=authorName, icon_url=authorIcon)
         embed.set_thumbnail(url=Icon.poro_voice)
-        embed.add_field(name="help", value="```List of commands```", inline=False)
-        embed.add_field(name="profile", value="```View selected summoner profile```", inline=False)
-        embed.add_field(name="set-region", value="```Set the server's region```", inline=False)
-        embed.add_field(name="setting", value="```View setting```", inline=False)
-        embed.add_field(name="add-player", value="```Add player to the Update list```", inline=False)
-        embed.add_field(name="delete-player", value="```Delete all players from the Update list```", inline=False)
+        embed.add_field(
+            name="help",
+            value="```List of commands```",
+            inline=False
+        )
+        embed.add_field(
+            name="profile",
+            value="```View selected summoner profile```",
+            inline=False
+        )
+        embed.add_field(
+            name="set-region",
+            value="```Set the server's region```",
+            inline=False
+        )
+        embed.add_field(
+            name="setting",
+            value="```View setting```",
+            inline=False
+        )
+        embed.add_field(
+            name="add-player",
+            value="```Add player to the Update list```",
+            inline=False
+        )
+        embed.add_field(
+            name="delete-player",
+            value="```Delete all players from the Update list```",
+            inline=False
+        )
         return embed
 
 
-
-# Data
-from data import item_undefined
 
 class MyViewProfile(discord.ui.View):
     """ View for the bot """
 
     def __init__(self):
         super().__init__()
-        self.value = None
+        self.embed_profile = None
+        self.embed_history = None
+        self.embed_match = None
+        self.match = None
+
+    def init_data(self, profile, history, match, match_data):
+        self.embed_profile = profile
+        self.embed_history = history
+        self.embed_match = match
+        self.match = match_data
 
     @discord.ui.button(label='OVERVIEW', style=discord.ButtonStyle.grey, custom_id='overview')
     async def overview(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -429,8 +566,7 @@ class MyViewProfile(discord.ui.View):
                 for y in x.options: y.default = False
 
         button.disabled = True
-        embed = MyEmbed.profile()
-        await interaction.response.edit_message(view=self, embed=embed)
+        await interaction.response.edit_message(view=self, embed=self.embed_profile)
 
     @discord.ui.button(label='CHALLENGES', style=discord.ButtonStyle.grey, custom_id='challenges')
     async def challenges(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -448,17 +584,17 @@ class MyViewProfile(discord.ui.View):
         for x in self.children:
             x.disabled = False
             if x.custom_id == 'match_select':
-                try: x.options = match_select
+                try: x.options = self.embed_match
                 except: pass
                 for y in x.options: y.default = False
 
         button.disabled = True
-        embed = MyEmbed.history()
-        await interaction.response.edit_message(view=self, embed=embed)
+        await interaction.response.edit_message(view=self, embed=self.embed_history)
 
     @discord.ui.button(label='DEBUG', style=discord.ButtonStyle.red, custom_id='debug')
     async def debug(self, interaction: discord.Interaction, button: discord.ui.Button):
-        for x in self.children: x.disabled = False
+        for x in self.children:
+            if x.custom_id != 'match_select': x.disabled = False
         await interaction.response.edit_message(view=self, content=f'```{item_undefined}```')
 
     @discord.ui.select(
@@ -477,49 +613,34 @@ class MyViewProfile(discord.ui.View):
         for x in self.children: x.disabled = False
         for x in select.options: x.default = False
         select.options[int(select.values[0])-1].default = True
-        embed = MyEmbed.match(match[int(select.values[0])-1])
+        embed = MyEmbed().match_embed(self.match[int(select.values[0])-1])
         await interaction.response.edit_message(view=self, embed=embed)
 
 
 class MyViewUpdateMatch(discord.ui.View):
     """ View for the bot """
 
-    match_update = None
-    player_update = None
-
-    def __init__(self):
+    def __init__(self, match, player):
         super().__init__()
-        self.value = None
-
-    def update(self, match, player):
         self.match_update = match
         self.player_update = player
 
-
     @discord.ui.button(label='MATCH DETAILS', style=discord.ButtonStyle.grey, custom_id='details')
     async def details(self, interaction: discord.Interaction, button: discord.ui.Button):
-        view = MyViewUpdateBack()
-        view.update(self.match_update, self.player_update)
-        embed = MyEmbed.match(self.match_update)
+        view = MyViewUpdateBack(self.match_update, self.player_update)
+        embed = MyEmbed().match_embed(self.match_update)
         await interaction.response.edit_message(view=view, embed=embed)
 
 class MyViewUpdateBack(discord.ui.View):
     """ View for the bot """
 
-    match_update = None
-    player_update = None
-
-    def __init__(self):
+    def __init__(self, match, player):
         super().__init__()
-        self.value = None
-
-    def update(self, match, player):
         self.match_update = match
         self.player_update = player
 
     @discord.ui.button(label='RETURN', style=discord.ButtonStyle.grey, custom_id='return')
-    async def details(self, interaction: discord.Interaction, button: discord.ui.Button):
-        view = MyViewUpdateMatch()
-        view.update(self.match_update, self.player_update)
-        embed = MyEmbed.history_light(self.match_update, self.player_update)
+    async def back(self, interaction: discord.Interaction, button: discord.ui.Button):
+        view = MyViewUpdateMatch(self.match_update, self.player_update)
+        embed = MyEmbed().history_light_embed(self.match_update, self.player_update)
         await interaction.response.edit_message(view=view, embed=embed)
