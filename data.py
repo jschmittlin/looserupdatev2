@@ -2,6 +2,26 @@ from enum import Enum
 import json
 import requests
 
+# Discord bot
+import discord
+from discord import app_commands
+
+# List of activities
+ACTIVITIES = [
+    discord.Activity(type=discord.ActivityType.watching, name="you"),
+    discord.Activity(type=discord.ActivityType.watching, name="Medhi put pressure on"),
+    discord.Activity(type=discord.ActivityType.watching, name="Medhi be shadow ban"),
+    discord.Activity(type=discord.ActivityType.watching, name="botlane feed"),
+    discord.Activity(type=discord.ActivityType.watching, name="Jérôme farmer these jungle camps"),
+    discord.Activity(type=discord.ActivityType.listening, name="Valentin raging"),
+    discord.Activity(type=discord.ActivityType.listening, name="La déprime"),
+    discord.Game(name="for /help"),
+    discord.Game(name="at tracking down losers"),
+    discord.Game(name="Blitzcrank's Poro Roundup"),
+    discord.Game(name="Doom Bots"),
+    discord.Game(name="to support KCorp !"),
+]
+
 # pandas
 import pandas as pd
 
@@ -13,7 +33,7 @@ class UpdatePlayer():
     @staticmethod
     def save(data):
         try:
-            df = pd.DataFrame(data, columns=["Region", "Summoner Name", "ID", "PUUID", "Ranks", "Match ID", "Profile Icon", "Resume"])
+            df = pd.DataFrame(data, columns=["Region", "Summoner_Name", "ID", "PUUID", "Ranks", "Match_ID", "Profile_Icon", "Resume"])
             df.to_excel(UpdatePlayer.file, index=False, header=True)
             return True
         except Exception as error: return error
@@ -26,15 +46,31 @@ class UpdatePlayer():
             for index, row in df.iterrows():
                 player = []
                 player.append(row["Region"])                                                                    # 0: Region
-                player.append(row["Summoner Name"])                                                             # 1: Summoner Name
+                player.append(row["Summoner_Name"])                                                             # 1: Summoner Name
                 player.append(row["ID"])                                                                        # 2: ID
                 player.append(row["PUUID"])                                                                     # 3: PUUID
                 player.append(row["Ranks"].replace("'", "").replace("[", "").replace("]", "").split(", "))      # 4: Ranks
-                player.append(row["Match ID"])                                                                  # 5: Match ID
-                player.append(row["Profile Icon"])                                                              # 6: Profile Icon
+                player.append(row["Match_ID"])                                                                  # 5: Match ID
+                player.append(row["Profile_Icon"])                                                              # 6: Profile Icon
                 player.append(row["Resume"])                                                                    # 7: Resume Games Ranks
                 UpdatePlayer.data.append(player)
             return UpdatePlayer.data
+        except Exception as error: return error
+
+    @staticmethod
+    def get_summoner_name():
+        try:
+            df = pd.read_excel(UpdatePlayer.file)
+            return df["Summoner_Name"].tolist()
+        except Exception as error: return error
+
+    @staticmethod
+    def get_region(name: str):
+        try:
+            for player in UpdatePlayer.data:
+                if player[1] == name:
+                    return player[0]
+            return None
         except Exception as error: return error
 
     @staticmethod
@@ -42,6 +78,16 @@ class UpdatePlayer():
         try:
             UpdatePlayer.data.clear()
             return UpdatePlayer.save(UpdatePlayer.data)
+        except Exception as error: return error
+
+    @staticmethod
+    def remove(name: str):
+        try:
+            for player in UpdatePlayer.data:
+                if player[1] == name:
+                    UpdatePlayer.data.remove(player)
+                    return UpdatePlayer.save(UpdatePlayer.data)
+            return False
         except Exception as error: return error
 
 
@@ -75,6 +121,10 @@ class Region(Enum):
                     return i.platform
         except: return None
 
+    @staticmethod
+    def get_choices() -> list:
+        return [app_commands.Choice(name=f"{i.value[1].capitalize()} ({i.value[0]})", value=i.value[0]) for i in Region]
+
 class Platform(Enum):
     brazil = 'BR1'
     europe_north_east = 'EUN1'
@@ -103,10 +153,10 @@ class Platform(Enum):
         except AttributeError: return Platform(region).region
 
 
-item_undefined = []
+ITEM_UNDEFINED = []
 
 class ddragon:
-    url_version = 'https://ddragon.leagueoflegends.com/api/versions.json'
+    url_version = 'http://ddragon.leagueoflegends.com/api/versions.json'
     version = requests.get(url_version).json()[0]
 
     url_profileicon = f'http://ddragon.leagueoflegends.com/cdn/{version}/img/profileicon/'

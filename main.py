@@ -5,6 +5,7 @@ import random
 import discord
 from discord import app_commands
 from discord.ext import tasks
+import typing
 
 # Riot RiotFramework
 from riotFramework import RiotFramework
@@ -14,7 +15,7 @@ framework = RiotFramework()
 from response import MyEmbed, MyViewProfile, MyViewUpdateMatch
 
 # data
-from data import UpdatePlayer, Region, ddragon, item_undefined
+from data import UpdatePlayer, Region, ddragon, ITEM_UNDEFINED, ACTIVITIES
 UpdatePlayer.load()
 
 # dotenv
@@ -34,22 +35,6 @@ ROLE_ADMIN_01 = int(os.getenv('ROLE_01'))
 ROLE_ADMIN_02 = int(os.getenv('ROLE_02'))
 CHANNEL = int(os.getenv('CHANNEL_ID'))
 USER = int(os.getenv('USER_01'))
-
-# List of activities
-activities = [
-    discord.Activity(type=discord.ActivityType.watching, name="you"),
-    discord.Activity(type=discord.ActivityType.watching, name="Medhi put pressure on"),
-    discord.Activity(type=discord.ActivityType.watching, name="Medhi be shadow ban"),
-    discord.Activity(type=discord.ActivityType.watching, name="botlane feed"),
-    discord.Activity(type=discord.ActivityType.watching, name="Jérôme farmer these jungle camps"),
-    discord.Activity(type=discord.ActivityType.listening, name="Valentin raging"),
-    discord.Activity(type=discord.ActivityType.listening, name="La déprime"),
-    discord.Game(name="for /help"),
-    discord.Game(name="at tracking down losers"),
-    discord.Game(name="Blitzcrank's Poro Roundup"),
-    discord.Game(name="Doom Bots"),
-    discord.Game(name="to support KCorp !"),
-]
 
 class MyClient(discord.Client):
     def __init__(self):
@@ -75,7 +60,7 @@ class MyClient(discord.Client):
     # Task to change the bot's activity
     @tasks.loop(seconds=1200) # Runs every 20 minutes
     async def change_activity_task(self):
-        activity = random.choice(activities)
+        activity = random.choice(ACTIVITIES)
         await self.change_presence(activity=activity)
 
     # Wait until the bot is ready before starting the task
@@ -107,7 +92,7 @@ class MyClient(discord.Client):
     already_send = []
     @tasks.loop(seconds=3600) # Runs every 1 hour
     async def send_item_undefined_task(self):
-        for item in item_undefined:
+        for item in ITEM_UNDEFINED:
             if item in self.already_send:
                 continue
             self.already_send.append(item)
@@ -122,29 +107,19 @@ class MyClient(discord.Client):
 
 
 
-
 client = MyClient()
 
-@client.tree.command(name="set-region", description="Set the server's region.")
-@app_commands.describe(region="Region")
-@app_commands.choices(region = [
-    app_commands.Choice(name="Brazil (BR)", value=Region.brazil.value[0]),
-    app_commands.Choice(name="Europe Nordic & East (EUNE)", value=Region.europe_north_east.value[0]),
-    app_commands.Choice(name="Europe West (EUW)", value=Region.europe_west.value[0]),
-    app_commands.Choice(name="Japan (JP)", value=Region.japan.value[0]),
-    app_commands.Choice(name="Korea (KR)", value=Region.korea.value[0]),
-    app_commands.Choice(name="Latin America North (LAN)", value=Region.latin_america_north.value[0]),
-    app_commands.Choice(name="Latin America South (LAS)", value=Region.latin_america_south.value[0]),
-    app_commands.Choice(name="North America (NA)", value=Region.north_america.value[0]),
-    app_commands.Choice(name="Oceania (OCE)", value=Region.oceania.value[0]),
-    app_commands.Choice(name="Turkey (TR)", value=Region.turkey.value[0]),
-    app_commands.Choice(name="Russia (RU)", value=Region.russia.value[0]),
-    app_commands.Choice(name="Philippines (PH)", value=Region.philippines.value[0]),
-    app_commands.Choice(name="Singapore (SG)", value=Region.singapore.value[0]),
-    app_commands.Choice(name="Thailand (TH)", value=Region.thailand.value[0]),
-    app_commands.Choice(name="Taiwan (TW)", value=Region.taiwan.value[0]),
-    app_commands.Choice(name="Vietnam (VN)", value=Region.vietnam.value[0]),
-])
+
+@client.tree.command(
+    name="set-region",
+    description="Set the server's region."
+)
+@app_commands.describe(
+    region="Region"
+)
+@app_commands.choices(
+    region = Region.get_choices()
+)
 async def set_region(interaction: discord.Interaction, region: app_commands.Choice[str]):
     log("/set-region " + region.value)
     await interaction.response.defer()
@@ -153,8 +128,13 @@ async def set_region(interaction: discord.Interaction, region: app_commands.Choi
     await interaction.followup.send(embed=embed)
 
 
-@client.tree.command(name="profile", description="View selected summoner profile.")
-@app_commands.describe(name="Player Name")
+@client.tree.command(
+    name="profile",
+    description="View selected summoner profile."
+)
+@app_commands.describe(
+    name="Player Name"
+)
 async def profile(interaction: discord.Interaction, name: str):
     log("/profile " + name)
     await interaction.response.defer()
@@ -189,26 +169,17 @@ async def profile(interaction: discord.Interaction, name: str):
         await interaction.followup.send(embed=MyEmbed.error(error))
 
 
-@client.tree.command(name="add-player", description="Add player to the Update list.")
-@app_commands.describe(name="Player Name", region="Region")
-@app_commands.choices(region = [
-    app_commands.Choice(name="Brazil (BR)", value=Region.brazil.value[0]),
-    app_commands.Choice(name="Europe Nordic & East (EUNE)", value=Region.europe_north_east.value[0]),
-    app_commands.Choice(name="Europe West (EUW)", value=Region.europe_west.value[0]),
-    app_commands.Choice(name="Japan (JP)", value=Region.japan.value[0]),
-    app_commands.Choice(name="Korea (KR)", value=Region.korea.value[0]),
-    app_commands.Choice(name="Latin America North (LAN)", value=Region.latin_america_north.value[0]),
-    app_commands.Choice(name="Latin America South (LAS)", value=Region.latin_america_south.value[0]),
-    app_commands.Choice(name="North America (NA)", value=Region.north_america.value[0]),
-    app_commands.Choice(name="Oceania (OCE)", value=Region.oceania.value[0]),
-    app_commands.Choice(name="Turkey (TR)", value=Region.turkey.value[0]),
-    app_commands.Choice(name="Russia (RU)", value=Region.russia.value[0]),
-    app_commands.Choice(name="Philippines (PH)", value=Region.philippines.value[0]),
-    app_commands.Choice(name="Singapore (SG)", value=Region.singapore.value[0]),
-    app_commands.Choice(name="Thailand (TH)", value=Region.thailand.value[0]),
-    app_commands.Choice(name="Taiwan (TW)", value=Region.taiwan.value[0]),
-    app_commands.Choice(name="Vietnam (VN)", value=Region.vietnam.value[0]),
-])
+@client.tree.command(
+    name="add-player",
+    description="Add player to the Update list."
+)
+@app_commands.describe(
+    name="Player Name",
+    region="Region"
+)
+@app_commands.choices(
+    region = Region.get_choices()
+)
 @app_commands.checks.has_any_role(ROLE_ADMIN_01, ROLE_ADMIN_02)
 async def add_player(interaction: discord.Interaction, name: str, region: app_commands.Choice[str]):
     log("/add-player " + name + " " + region.value)
@@ -250,17 +221,41 @@ async def add_player(interaction: discord.Interaction, name: str, region: app_co
         await interaction.followup.send(embed=embed.error(error))
 
 
-@client.tree.command(name="delete-player", description="Delete all players from the Update list.")
+async def delete_player_autocomplete(
+    interaction: discord.Interaction,
+    current: str
+) -> typing.List[app_commands.Choice[str]]:
+    data = []
+    for player in UpdatePlayer.get_summoner_name():
+        if current.lower() in player.lower():
+            data.append(app_commands.Choice(name=f"{player} #{UpdatePlayer.get_region(player)}", value=player))
+    return data
+
+@client.tree.command(
+    name="delete-player",
+    description="Delete all players from the Update list."
+)
+@app_commands.describe(
+    name = "Player Name"
+)
+@app_commands.autocomplete(name=delete_player_autocomplete)
 @app_commands.checks.has_any_role(ROLE_ADMIN_01, ROLE_ADMIN_02)
-async def delete_player(interaction: discord.Interaction):
-    log("/delete-player")
-    UpdatePlayer.delete()
+async def delete_player(interaction: discord.Interaction, name: str):
+    log("/delete-player " + name)
+    if name not in UpdatePlayer.get_summoner_name():
+        embed = MyEmbed().system("Player not found.", "Please check the player name.")
+        return await interaction.response.send_message(embed=embed, ephemeral=True)
+    region = UpdatePlayer.get_region(name)
+    UpdatePlayer.remove(name)
     framework.set_region(Region.europe_west.value[0])
-    embed = MyEmbed().success("All players has been deleted.", " ")
+    embed = MyEmbed().success(f"{name} #{region}", "Deleted from the Update list.")
     await interaction.response.send_message(embed=embed)
 
 
-@client.tree.command(name="setting", description="View setting.")
+@client.tree.command(
+    name="setting",
+    description="View setting."
+)
 async def setting(interaction: discord.Interaction):
     log("/setting")
     region = framework.region.get('region')
@@ -268,8 +263,14 @@ async def setting(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-@client.tree.command(name="dm", description="Send a message to a user.")
-@app_commands.describe(user="User", message="Message")
+@client.tree.command(
+    name="dm",
+    description="Send a message to a user."
+)
+@app_commands.describe(
+    user="User",
+    message="Message"
+)
 @app_commands.checks.has_any_role(ROLE_ADMIN_01)
 async def dm(interaction: discord.Interaction, user: discord.User, *, message: str):
     log("/dm " + user.name + " " + message)
@@ -278,7 +279,10 @@ async def dm(interaction: discord.Interaction, user: discord.User, *, message: s
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-@client.tree.command(name="help", description="Shows the help menu.")
+@client.tree.command(
+    name="help",
+    description="Shows the help menu."
+)
 async def help(interaction: discord.Interaction):
     log("/help")
     embed = MyEmbed().help()

@@ -10,7 +10,7 @@ from discord.ui import View, button, Select
 from resources import Emoji, Icon, Color
 
 # Data
-from data import item_undefined
+from data import ITEM_UNDEFINED
 
 
 def replaceSpaces(string: str):
@@ -284,38 +284,38 @@ class MyEmbed:
             try: item0 = Emoji.item[player['items'][0]]
             except: 
                 item0 = Emoji.item[0]
-                if player['items'][0] not in item_undefined:
-                    item_undefined.append(player['items'][0])
+                if player['items'][0] not in ITEM_UNDEFINED:
+                    ITEM_UNDEFINED.append(player['items'][0])
             try: item1 = Emoji.item[player['items'][1]]
             except:
                 item1 = Emoji.item[0]
-                if player['items'][1] not in item_undefined:
-                    item_undefined.append(player['items'][1])
+                if player['items'][1] not in ITEM_UNDEFINED:
+                    ITEM_UNDEFINED.append(player['items'][1])
             try: item2 = Emoji.item[player['items'][2]]
             except:
                 item2 = Emoji.item[0]
-                if player['items'][2] not in item_undefined:
-                    item_undefined.append(player['items'][2])
+                if player['items'][2] not in ITEM_UNDEFINED:
+                    ITEM_UNDEFINED.append(player['items'][2])
             try: item3 = Emoji.item[player['items'][3]]
             except:
                 item3 = Emoji.item[0]
-                if player['items'][3] not in item_undefined:
-                    item_undefined.append(player['items'][3])
+                if player['items'][3] not in ITEM_UNDEFINED:
+                    ITEM_UNDEFINED.append(player['items'][3])
             try: item4 = Emoji.item[player['items'][4]]
             except: 
                 item4 = Emoji.item[0]
-                if player['items'][4] not in item_undefined:
-                    item_undefined.append(player['items'][4])
+                if player['items'][4] not in ITEM_UNDEFINED:
+                    ITEM_UNDEFINED.append(player['items'][4])
             try: item5 = Emoji.item[player['items'][5]]
             except: 
                 item5 = Emoji.item[0]
-                if player['items'][5] not in item_undefined:
-                    item_undefined.append(player['items'][5])
+                if player['items'][5] not in ITEM_UNDEFINED:
+                    ITEM_UNDEFINED.append(player['items'][5])
             try: item6 = Emoji.item[player['items'][6]]
             except: 
                 item6 = Emoji.item[0]
-                if player['items'][6] not in item_undefined:
-                    item_undefined.append(player['items'][6])
+                if player['items'][6] not in ITEM_UNDEFINED:
+                    ITEM_UNDEFINED.append(player['items'][6])
             team1_champ += f'{position}{emoji_rune} **{player["level"]}** \u200b {Emoji.champion[player["champion"]]} \u200b {name}\n'
             team1_item += f'{item0} {item1} {item2} {item3} {item4} {item5} {item6}\n'
             team1_inv_kda += f'{Emoji.blank} \u200b  \u200b **{player["kills"]} \u200b / \u200b {player["deaths"]} \u200b / \u200b {player["assists"]}**\n'
@@ -352,38 +352,38 @@ class MyEmbed:
             try: item0 = Emoji.item[player['items'][0]]
             except: 
                 item0 = Emoji.item[0]
-                if player['items'][0] not in item_undefined:
-                    item_undefined.append(player['items'][0])
+                if player['items'][0] not in ITEM_UNDEFINED:
+                    ITEM_UNDEFINED.append(player['items'][0])
             try: item1 = Emoji.item[player['items'][1]]
             except:
                 item1 = Emoji.item[0]
-                if player['items'][1] not in item_undefined:
-                    item_undefined.append(player['items'][1])
+                if player['items'][1] not in ITEM_UNDEFINED:
+                    ITEM_UNDEFINED.append(player['items'][1])
             try: item2 = Emoji.item[player['items'][2]]
             except:
                 item2 = Emoji.item[0]
-                if player['items'][2] not in item_undefined:
-                    item_undefined.append(player['items'][2])
+                if player['items'][2] not in ITEM_UNDEFINED:
+                    ITEM_UNDEFINED.append(player['items'][2])
             try: item3 = Emoji.item[player['items'][3]]
             except:
                 item3 = Emoji.item[0]
-                if player['items'][3] not in item_undefined:
-                    item_undefined.append(player['items'][3])
+                if player['items'][3] not in ITEM_UNDEFINED:
+                    ITEM_UNDEFINED.append(player['items'][3])
             try: item4 = Emoji.item[player['items'][4]]
             except: 
                 item4 = Emoji.item[0]
-                if player['items'][4] not in item_undefined:
-                    item_undefined.append(player['items'][4])
+                if player['items'][4] not in ITEM_UNDEFINED:
+                    ITEM_UNDEFINED.append(player['items'][4])
             try: item5 = Emoji.item[player['items'][5]]
             except: 
                 item5 = Emoji.item[0]
-                if player['items'][5] not in item_undefined:
-                    item_undefined.append(player['items'][5])
+                if player['items'][5] not in ITEM_UNDEFINED:
+                    ITEM_UNDEFINED.append(player['items'][5])
             try: item6 = Emoji.item[player['items'][6]]
             except: 
                 item6 = Emoji.item[0]
-                if player['items'][6] not in item_undefined:
-                    item_undefined.append(player['items'][6])
+                if player['items'][6] not in ITEM_UNDEFINED:
+                    ITEM_UNDEFINED.append(player['items'][6])
             team2_champ += f'{position}{emoji_rune} **{player["level"]}** \u200b {Emoji.champion[player["champion"]]} \u200b {name}\n'
             team2_item += f'{item0} {item1} {item2} {item3} {item4} {item5} {item6}\n'
             team2_inv_kda += f'{Emoji.blank} \u200b  \u200b **{player["kills"]} \u200b / \u200b {player["deaths"]} \u200b / \u200b {player["assists"]}**\n'
@@ -595,7 +595,7 @@ class MyViewProfile(discord.ui.View):
     async def debug(self, interaction: discord.Interaction, button: discord.ui.Button):
         for x in self.children:
             if x.custom_id != 'match_select': x.disabled = False
-        await interaction.response.edit_message(view=self, content=f'```{item_undefined}```')
+        await interaction.response.edit_message(view=self, content=f'```{ITEM_UNDEFINED}```')
 
     @discord.ui.select(
         placeholder='MATCH DETAILS',
