@@ -27,7 +27,7 @@ load_dotenv()
 import time
 def log(message, level="INFO"):
     current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
-    print("[{}] [{:<8}] fearofgod: {}".format(current_time, level, message))
+    print("[{}] [{:<8}] LooserUpdateV2: {}".format(current_time, level, message))
 
 # Retrieve the token from the environment variable
 MY_GUILD = discord.Object(id=os.getenv('GUILD_ID'))
@@ -41,8 +41,6 @@ class MyClient(discord.Client):
         super().__init__(intents=discord.Intents.default())
         # Register application commands
         self.tree = app_commands.CommandTree(self)
-        # Emoji class
-        self.emoji = Emoji(self)
 
     async def on_ready(self):
         log("logged in as {} (ID: {})".format(self.user, self.user.id))
@@ -324,25 +322,6 @@ async def delete_player_error(interaction: discord.Interaction, error: Exception
 async def setting_error(interaction: discord.Interaction, error: Exception):
     log(error)
     embed = MyEmbed().system("Error", error)
-    await interaction.response.send_message(embed=embed, ephemeral=True)
-
-
-@client.tree.command(
-    name="create-emoji",
-    description="Create an emoji."
-)
-@app_commands.describe(
-    name="Emoji Name",
-    url="Emoji URL"
-)
-async def create_emoji(interaction: discord.Interaction, name: str, url: str):
-    server_id = 1075087535925112973
-    success, result = await client.emoji.create_emoji(server_id=server_id, name=name, url=url)
-    if success:
-        print(result)
-        embed = MyEmbed().success("Emoji created", f"Emoji {name} has been created.")
-    else:
-        embed = MyEmbed().error("Error", result)
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
