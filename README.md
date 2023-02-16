@@ -20,7 +20,7 @@ This Bot is inspired by a previous project developed by [@mlouison](https://gith
 | `/set-region` +region                     | Set the server's region            |
 | `/setting`                                | View setting                       |
 | `/add-player` +name +region               | Add player                         |
-| `/delete-player`                          | Delete all players                 |
+| `/delete-player`                          | Delete player                      |
 | `/help`                                   | List of commands                   |
 
 ### Example
