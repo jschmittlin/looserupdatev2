@@ -10,7 +10,7 @@ from discord.ui import View, button, Select
 from resources import Emoji, Icon, Color
 
 # Data
-from data import ITEM_UNDEFINED
+from data import Item
 
 
 def replaceSpaces(string: str):
@@ -40,39 +40,23 @@ class MyEmbed:
         self.embed_history = None
         self.embed_history_light = None
 
-    def init_data(self, region, summoner, ranks, mastery_score, masteries, challenges, history, match):
+    def init_data(self, region, summoner, league, mastery_score, masteries, challenges, history, match):
         self.region = region.get('region').value[0]
         self.name = summoner.get('name')
         self.level = summoner.get('level')
-        self.icon = summoner.get('profile_icon')
-        self.solo = ranks.get('solo')
-        self.flex = ranks.get('flex')
+        self.icon = summoner.get('profileIcon')
+        self.solo = league.get('solo')
+        self.flex = league.get('flex')
         self.mastery_score = mastery_score
         self.masteries = masteries
         self.challenges = challenges
         self.history = history
         self.match = match
-
-    def set_data(self, region, name, level, icon, solo, flex, mastery_score, masteries, challenges, history, match):
-        self.region = region
-        self.name = name
-        self.level = level
-        self.icon = icon
-        self.solo = solo
-        self.flex = flex
-        self.mastery_score = mastery_score
-        self.masteries = masteries
-        self.challenges = challenges
-        self.history = history
-        self.match = match
-
-    def get_data(self):
-        return self.region, self.name, self.level, self.icon, self.solo, self.flex, self.mastery_score, self.masteries, self.challenges, self.history, self.match, self.match_select
 
     def profile_embed(self):
         """ profile embed """
-        if self.challenges is not None:
-            description = f'{self.level} \u200b | \u200b {self.challenges[0]}'
+        if self.challenges.get('title') is not None:
+            description = f'{self.level} \u200b | \u200b {self.challenges.get("title")}'
         else:
             description = f'{self.level}'
         
@@ -97,14 +81,14 @@ class MyEmbed:
         value_solo = f'{Emoji.tier["UNRANKED"]} \u200b **Unranked** \n{Emoji.blank}'
         value_flex = f'{Emoji.tier["UNRANKED"]} \u200b **Unranked** \n{Emoji.blank}'
 
-        if self.solo[0] is not None:
-            spaces_solo = spacing(self.solo[1], self.solo[4], self.solo[5])
-            value_solo = f'{Emoji.tier[self.solo[1]]} \u200b **{self.solo[1]} {self.solo[2]}**{spaces_solo}{self.solo[3]} LP\n'
-            value_solo += f'**Win Rate {percent(self.solo[4], self.solo[5])}%** {Emoji.blank} {self.solo[4]}W / {self.solo[5]}L\n{Emoji.blank}'
-        if self.flex[0] is not None:
-            spaces_flex = spacing(self.flex[1], self.flex[4], self.flex[5])
-            value_flex = f'{Emoji.tier[self.flex[1]]} \u200b **{self.flex[1]} {self.flex[2]}**{spaces_flex}{self.flex[3]} LP\n'
-            value_flex += f'**Win Rate {percent(self.flex[4],self.flex[5])}%** {Emoji.blank} {self.flex[4]}W / {self.flex[5]}L\n{Emoji.blank}'
+        if self.solo.get('tier') is not None:
+            spaces_solo = spacing(self.solo.get('rank'), self.solo.get('wins'), self.solo.get('losses'))
+            value_solo = f"{Emoji.tier[self.solo[1]]} \u200b **{self.solo.get('tier')} {self.solo.get('rank')}**{spaces_solo}{self.solo.get('leaguePoints')} LP\n"
+            value_solo += f"**Win Rate {percent(self.solo.get('wins'), self.solo.get('losses'))}%** {Emoji.blank} {self.solo.get('wins')}W / {self.solo.get('losses')}L\n{Emoji.blank}"
+        if self.flex.get('tier') is not None:
+            spaces_flex = spacing(self.flex.get('rank'), self.flex.get('wins'), self.flex.get('losses'))
+            value_flex = f"{Emoji.tier[self.flex[1]]} \u200b **{self.flex.get('tier')} {self.flex.get('rank')}**{spaces_flex}{self.flex.get('leaguePoints')} LP\n"
+            value_flex += f"**Win Rate {percent(self.flex.get('wins'), self.flex.get('losses'))}%** {Emoji.blank} {self.flex.get('wins')}W / {self.flex.get('losses')}L\n{Emoji.blank}"
 
         embed.add_field(name='SOLO/DUO', value=value_solo, inline=True)
         embed.add_field(name='FLEX 5V5', value=value_flex, inline=True)
@@ -119,9 +103,9 @@ class MyEmbed:
         # Champions Masteries
         champion_masteries = []
         for i in range(3):
-            champion_name = self.masteries.get('champion_names')[i]
-            champion_level = self.masteries.get('champion_levels')[i]
-            champion_point = self.masteries.get('champion_points')[i]
+            champion_name = self.masteries.get('championNames')[i]
+            champion_level = self.masteries.get('championLevels')[i]
+            champion_point = self.masteries.get('championPoints')[i]
             
             champion_mastery = f'{Emoji.mastery[champion_level]} \u200b {Emoji.champion[champion_name]} \u200b **{champion_name.upper()}** \n'
             champion_mastery += f'{Emoji.mastery["default"]} \u200b {champion_point} pts \n{Emoji.blank}'
@@ -171,7 +155,7 @@ class MyEmbed:
             
             match_001 = f'{info["gameMap"]}\n{info["gameDuration"]} \u200b  • \u200b <t:{info["gameEndTimestamp"]}:d>'
                 
-            items = [Emoji.item.get(data["items"][i], Emoji.item[0]) for i in range(7)]
+            items = [Item.get_emoji(data["items"][i]) for i in range(7)]
             match_010 = f"{Emoji.blank}{' '.join(items)}\n"
             match_010 += f'**{data["kills"]} / {data["deaths"]} / {data["assists"]}{Emoji.blank}{data["cs"]}{Emoji.history["cs"]}{Emoji.blank}{data["gold"]}{Emoji.history["gold"]}**'
 
@@ -189,17 +173,27 @@ class MyEmbed:
 
     def history_light_embed(self, match, player):
         """ history embed (1 match) """
+        region = player.get('region')
+        name = player.get('summoner').get('name')
+        profile_icon = player.get('summoner').get('profileIcon')
+        tier = player.get('league').get('tier')
+        rank = player.get('league').get('rank')
+        lp = player.get('league').get('leaguePoints')
+        wins = player.get('league').get('wins')
+        losses = player.get('league').get('losses')
+        resume = player.get('resume')
+
         try:
-            opgg = f'https://www.op.gg/summoners/{player[0]}/{replaceSpaces(player[1])}'
+            opgg = f'https://www.op.gg/summoners/{region}/{replaceSpaces(name)}'
         except:
             opgg = f'https://www.op.gg/'
 
-        title = f'{player[1]} \u200b #{player[0]}'
+        title = f'{name} \u200b #{region}'
         try:
-            desc = f'{Emoji.tier[player[4][0]]} \u200b **{player[4][0]} \u200b {player[4][1]}**{Emoji.blank}{player[4][2]} LP \u200b `{player[7]}`'
-            desc += f'**{Emoji.blank}•{Emoji.blank}Win Rate \u200b {percent(player[4][3], player[4][4])}%**{Emoji.blank}{player[4][3]}W / {player[4][4]}L\n{Emoji.blank}'
+            desc = f'{Emoji.tier[tier]} \u200b **{tier} \u200b {rank}**{Emoji.blank}{lp} LP \u200b `{resume}`'
+            desc += f'**{Emoji.blank}•{Emoji.blank}Win Rate \u200b {percent(wins, losses)}%**{Emoji.blank}{wins}W / {losses}L\n{Emoji.blank}'
         except Exception as error:
-            desc = f'{Emoji.tier["UNRANKED"]} \u200b **Unranked**{Emoji.blank}`{player[7]}`\n{Emoji.blank}'
+            desc = f'{Emoji.tier["UNRANKED"]} \u200b **Unranked**{Emoji.blank}`{resume}`\n{Emoji.blank}'
 
         if match[1]['win']:
             color = Color.victory
@@ -214,8 +208,8 @@ class MyEmbed:
             timestamp=datetime.utcnow()
         )
         embed.set_author(
-            name=f'Summoner \u200b Profile \u200b \u200b • \u200b \u200b {player[1].upper()}',
-            icon_url=player[6]
+            name=f'Summoner \u200b Profile \u200b \u200b • \u200b \u200b {name.upper()}',
+            icon_url=profile_icon
         )
         embed.set_footer(text="LooserUpdateV2", icon_url=Icon.emrata)
 
@@ -239,7 +233,7 @@ class MyEmbed:
         match_100 += f'{Emoji.blank}{Emoji.blank}{Emoji.blank}\n{Emoji.blank}'
         match_001 = f'{info["gameMap"]}\n{info["gameDuration"]} \u200b  • \u200b <t:{info["gameEndTimestamp"]}:d>\n{Emoji.blank}'
             
-        items = [Emoji.item.get(data["items"][i], Emoji.item[0]) for i in range(7)]
+        items = [Item.get_emoji(data["items"][i]) for i in range(7)]
         match_010 = f"{Emoji.blank}{' '.join(items)}\n"
         match_010 += f'**{data["kills"]} / {data["deaths"]} / {data["assists"]}{Emoji.blank}{data["cs"]}{Emoji.history["cs"]}{Emoji.blank}{data["gold"]}{Emoji.history["gold"]}**'
         match_010 += f'\n{Emoji.blank}'
@@ -281,43 +275,9 @@ class MyEmbed:
             else: name = player['name']
             try: emoji_rune = Emoji.rune[player['rune']]
             except: emoji_rune = Emoji.rune['Runes']
-            try: item0 = Emoji.item[player['items'][0]]
-            except: 
-                item0 = Emoji.item[0]
-                if player['items'][0] not in ITEM_UNDEFINED:
-                    ITEM_UNDEFINED.append(player['items'][0])
-            try: item1 = Emoji.item[player['items'][1]]
-            except:
-                item1 = Emoji.item[0]
-                if player['items'][1] not in ITEM_UNDEFINED:
-                    ITEM_UNDEFINED.append(player['items'][1])
-            try: item2 = Emoji.item[player['items'][2]]
-            except:
-                item2 = Emoji.item[0]
-                if player['items'][2] not in ITEM_UNDEFINED:
-                    ITEM_UNDEFINED.append(player['items'][2])
-            try: item3 = Emoji.item[player['items'][3]]
-            except:
-                item3 = Emoji.item[0]
-                if player['items'][3] not in ITEM_UNDEFINED:
-                    ITEM_UNDEFINED.append(player['items'][3])
-            try: item4 = Emoji.item[player['items'][4]]
-            except: 
-                item4 = Emoji.item[0]
-                if player['items'][4] not in ITEM_UNDEFINED:
-                    ITEM_UNDEFINED.append(player['items'][4])
-            try: item5 = Emoji.item[player['items'][5]]
-            except: 
-                item5 = Emoji.item[0]
-                if player['items'][5] not in ITEM_UNDEFINED:
-                    ITEM_UNDEFINED.append(player['items'][5])
-            try: item6 = Emoji.item[player['items'][6]]
-            except: 
-                item6 = Emoji.item[0]
-                if player['items'][6] not in ITEM_UNDEFINED:
-                    ITEM_UNDEFINED.append(player['items'][6])
+            items = [Item.get_emoji(player["items"][i]) for i in range(7)]
+            team1_item += f"{' '.join(items)}\n"
             team1_champ += f'{position}{emoji_rune} **{player["level"]}** \u200b {Emoji.champion[player["champion"]]} \u200b {name}\n'
-            team1_item += f'{item0} {item1} {item2} {item3} {item4} {item5} {item6}\n'
             team1_inv_kda += f'{Emoji.blank} \u200b  \u200b **{player["kills"]} \u200b / \u200b {player["deaths"]} \u200b / \u200b {player["assists"]}**\n'
             
         embed.add_field(name=team1_kda, value=team1_champ, inline=True)
@@ -349,43 +309,9 @@ class MyEmbed:
             name = player['name']
             try: emoji_rune = Emoji.rune[player['rune']]
             except: emoji_rune = Emoji.rune['Runes']
-            try: item0 = Emoji.item[player['items'][0]]
-            except: 
-                item0 = Emoji.item[0]
-                if player['items'][0] not in ITEM_UNDEFINED:
-                    ITEM_UNDEFINED.append(player['items'][0])
-            try: item1 = Emoji.item[player['items'][1]]
-            except:
-                item1 = Emoji.item[0]
-                if player['items'][1] not in ITEM_UNDEFINED:
-                    ITEM_UNDEFINED.append(player['items'][1])
-            try: item2 = Emoji.item[player['items'][2]]
-            except:
-                item2 = Emoji.item[0]
-                if player['items'][2] not in ITEM_UNDEFINED:
-                    ITEM_UNDEFINED.append(player['items'][2])
-            try: item3 = Emoji.item[player['items'][3]]
-            except:
-                item3 = Emoji.item[0]
-                if player['items'][3] not in ITEM_UNDEFINED:
-                    ITEM_UNDEFINED.append(player['items'][3])
-            try: item4 = Emoji.item[player['items'][4]]
-            except: 
-                item4 = Emoji.item[0]
-                if player['items'][4] not in ITEM_UNDEFINED:
-                    ITEM_UNDEFINED.append(player['items'][4])
-            try: item5 = Emoji.item[player['items'][5]]
-            except: 
-                item5 = Emoji.item[0]
-                if player['items'][5] not in ITEM_UNDEFINED:
-                    ITEM_UNDEFINED.append(player['items'][5])
-            try: item6 = Emoji.item[player['items'][6]]
-            except: 
-                item6 = Emoji.item[0]
-                if player['items'][6] not in ITEM_UNDEFINED:
-                    ITEM_UNDEFINED.append(player['items'][6])
+            items = [Item.get_emoji(player["items"][i]) for i in range(7)]
+            team2_item += f"{' '.join(items)}\n"
             team2_champ += f'{position}{emoji_rune} **{player["level"]}** \u200b {Emoji.champion[player["champion"]]} \u200b {name}\n'
-            team2_item += f'{item0} {item1} {item2} {item3} {item4} {item5} {item6}\n'
             team2_inv_kda += f'{Emoji.blank} \u200b  \u200b **{player["kills"]} \u200b / \u200b {player["deaths"]} \u200b / \u200b {player["assists"]}**\n'
             
         embed.add_field(name=team2_kda, value=team2_champ, inline=True)
@@ -480,16 +406,26 @@ class MyEmbed:
         embed.set_author(name=f'SETTINGS', icon_url=Icon.setting)
         embed.add_field(
             name="REGION",
-            value=f"```{region[0]} ({region[1]})```",
+            value=f"```{region.value[0]} ({region.value[1]})```",
             inline=False
         )
         value_player = ""
-        for p in players:
+        if len(players) == 0:
+            value_player = "``` ```"
+
+        for player in players:
+            name = player.get('summoner').get('name')
+            region = player.get('region')
+            league = player.get('league')
+            division = f"{league.get('tier')} {league.get('rank')}"
+            lp = league.get('leaguePoints')
+            wins = league.get('wins')
+            losses = league.get('losses')
             try:
-                value_player += f"```{p[1]} #{p[0]}\n{p[4][0]} {p[4][1]} • {p[4][2]} LP | Win Rate {percent(int(p[4][3]), int(p[4][4]))}% • [{p[4][3]}W / {p[4][4]}L]```"
-            except:
-                value_player += f"```{p[1]} #{p[0]}\nUnranked```"
-        if len(players) == 0: value_player = "``` ```"
+                value_player += f"```{name} #{region}\n{division} • {lp} LP | Win Rate {percent(wins, losses)}% • [{wins}W / {losses}L]```"
+            except Exception as error:
+                value_player += f"```{name} #{region}\nUnranked```"
+
         embed.add_field(
             name=f"PLAYER (Max. {max})",
             value=f"{value_player}",
@@ -595,7 +531,7 @@ class MyViewProfile(discord.ui.View):
     async def debug(self, interaction: discord.Interaction, button: discord.ui.Button):
         for x in self.children:
             if x.custom_id != 'match_select': x.disabled = False
-        await interaction.response.edit_message(view=self, content=f'```{ITEM_UNDEFINED}```')
+        await interaction.response.edit_message(view=self, content=f'```{Item.__undef__}```')
 
     @discord.ui.select(
         placeholder='MATCH DETAILS',

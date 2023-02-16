@@ -15,7 +15,7 @@ framework = RiotFramework()
 from response import MyEmbed, MyViewProfile, MyViewUpdateMatch
 
 # data
-from data import UpdatePlayer, Region, ddragon, ITEM_UNDEFINED, ACTIVITIES
+from data import Emoji, UpdatePlayer, Region, ddragon, Item, ACTIVITIES
 UpdatePlayer.load()
 
 # dotenv
@@ -27,14 +27,13 @@ load_dotenv()
 import time
 def log(message, level="INFO"):
     current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
-    print("[{}] [{:<8}] LooserUpdateV2: {}".format(current_time, level, message))
+    print("[{}] [{:<8}] fearofgod: {}".format(current_time, level, message))
 
 # Retrieve the token from the environment variable
 MY_GUILD = discord.Object(id=os.getenv('GUILD_ID'))
 ROLE_ADMIN_01 = int(os.getenv('ROLE_01'))
 ROLE_ADMIN_02 = int(os.getenv('ROLE_02'))
 CHANNEL = int(os.getenv('CHANNEL_ID'))
-USER = int(os.getenv('USER_01'))
 
 class MyClient(discord.Client):
     def __init__(self):
@@ -42,6 +41,8 @@ class MyClient(discord.Client):
         super().__init__(intents=discord.Intents.default())
         # Register application commands
         self.tree = app_commands.CommandTree(self)
+        # Emoji class
+        self.emoji = Emoji(self)
 
     async def on_ready(self):
         log("logged in as {} (ID: {})".format(self.user, self.user.id))
@@ -55,7 +56,7 @@ class MyClient(discord.Client):
         # Start background tasks
         self.change_activity_task.start()
         self.update_player_task.start()
-        self.send_item_undefined_task.start()
+        self.update_item_undefined_task.start()
 
     # Task to change the bot's activity
     @tasks.loop(seconds=1200) # Runs every 20 minutes
@@ -71,16 +72,20 @@ class MyClient(discord.Client):
     # Task to update the player's rank
     @tasks.loop(seconds=60) # Runs every 1 minutes
     async def update_player_task(self):
-        channel = self.get_channel(CHANNEL)
         data = UpdatePlayer.load()
         new_data = []
         for player in data:
             match = framework.update_rank(player)
             new_data.append(player)
             if not isinstance(match, str):
+                log("Update: " + player.get('summoner').get('name'))
+                channel = self.get_channel(CHANNEL)
                 embed = MyEmbed().history_light_embed(match, player)
                 view = MyViewUpdateMatch(match, player)
-                await channel.send(embed=embed, view=view)
+                try:
+                    await channel.send(embed=embed, view=view)
+                except Exception as e:
+                    log(str(e), "ERROR")
         UpdatePlayer.save(new_data)
 
     # Wait until the bot is ready before starting the task
@@ -88,21 +93,19 @@ class MyClient(discord.Client):
     async def before_update_player_task(self):
         await self.wait_until_ready()
 
-    # Task to send dm to user when an item is missing
-    already_send = []
-    @tasks.loop(seconds=3600) # Runs every 1 hour
-    async def send_item_undefined_task(self):
-        for item in ITEM_UNDEFINED:
-            if item in self.already_send:
-                continue
-            self.already_send.append(item)
+    # Task to add emoji to items that are not defined
+    @tasks.loop(seconds=60) # Runs every 1 minutes
+    async def update_item_undefined_task(self):
+        for item in Item.__undef__:
             url = ddragon.get_item(item)
-            user = await self.fetch_user(USER)
-            await user.send("Item {} missing: {}".format(item, url))
+            await Item.add_emoji(self, item, url)
+            Item.remove_undefined(item)
+            log("Add emoji: " + str(item))
+
 
     # Wait until the bot is ready before starting the task
-    @send_item_undefined_task.before_loop
-    async def before_send_item_undefined_task(self):
+    @update_item_undefined_task.before_loop
+    async def before_update_item_undefined_task(self):
         await self.wait_until_ready()
 
 
@@ -153,7 +156,7 @@ async def profile(interaction: discord.Interaction, name: str):
         if isinstance(result, tuple):
             match_errors = True
 
-        embed.init_data(framework.region, framework.summoner_info, framework.ranks, framework.mastery_score,
+        embed.init_data(framework.region, framework.summoner, framework.league, framework.mastery_score,
         framework.masteries, framework.challenges, framework.history, framework.match)
 
         if match_errors:
@@ -166,7 +169,7 @@ async def profile(interaction: discord.Interaction, name: str):
         view.children[0].disabled = True
         await interaction.followup.send(embed=embed.profile_embed(), view=view)
     except Exception as error:
-        await interaction.followup.send(embed=MyEmbed.error(error))
+        await interaction.followup.send(embed=embed.error(error))
 
 
 @client.tree.command(
@@ -186,7 +189,7 @@ async def add_player(interaction: discord.Interaction, name: str, region: app_co
     embed = MyEmbed()
     data = UpdatePlayer.load()
     for player in data:
-        if player[0] == region.value and player[1].lower() == name.lower():
+        if player.get('region') == region.value and player.get('summoner').get('name').lower() == name.lower():
             return await interaction.response.send_message(embed=embed.system("Player is already in the list.", "Please remove the player from the list first."), ephemeral=True)
 
     try:
@@ -199,19 +202,17 @@ async def add_player(interaction: discord.Interaction, name: str, region: app_co
         if isinstance(summoner, str):
             return await interaction.followup.send(embed=embed.error(summoner))
 
-        rank = framework.fetch_ranks(summoner.get('id')).get('solo')[1:]
+        league = framework.fetch_league(summoner.get('id')).get('solo')
         try: match_id = framework.fetch_match_list(summoner.get('puuid'), 1)[0]
         except: match_id = None
 
-        player = []
-        player.append(region.value)                     # 0: Region
-        player.append(summoner.get('name'))             # 1: Summoner Name
-        player.append(summoner.get('id'))               # 2: ID
-        player.append(summoner.get('puuid'))            # 3: PUUID
-        player.append(rank)                             # 4: Ranks
-        player.append(match_id)                         # 5: Match ID
-        player.append(summoner.get('profile_icon'))     # 6: Profile Icon
-        player.append("PLACEMENTS 0/10")                # 7: Resume Games Ranks
+        player = {
+            "region": region.value,
+            "summoner": summoner,
+            "league": league,
+            "matchId": match_id,
+            "resume": "PLACEMENTS 0/10"
+        }
         
         data.append(player)
         UpdatePlayer.save(data)
@@ -226,7 +227,7 @@ async def delete_player_autocomplete(
     current: str
 ) -> typing.List[app_commands.Choice[str]]:
     data = []
-    for player in UpdatePlayer.get_summoner_name():
+    for player in UpdatePlayer.get_summoner_names():
         if current.lower() in player.lower():
             data.append(app_commands.Choice(name=f"{player} #{UpdatePlayer.get_region(player)}", value=player))
     return data
@@ -242,7 +243,7 @@ async def delete_player_autocomplete(
 @app_commands.checks.has_any_role(ROLE_ADMIN_01, ROLE_ADMIN_02)
 async def delete_player(interaction: discord.Interaction, name: str):
     log("/delete-player " + name)
-    if name not in UpdatePlayer.get_summoner_name():
+    if name not in UpdatePlayer.get_summoner_names():
         embed = MyEmbed().system("Player not found.", "Please check the player name.")
         return await interaction.response.send_message(embed=embed, ephemeral=True)
     region = UpdatePlayer.get_region(name)
@@ -259,7 +260,7 @@ async def delete_player(interaction: discord.Interaction, name: str):
 async def setting(interaction: discord.Interaction):
     log("/setting")
     region = framework.region.get('region')
-    embed = MyEmbed().setting((region.value[1], region.value[0]), UpdatePlayer.load(), UpdatePlayer.max)
+    embed = MyEmbed().setting(region, UpdatePlayer.load(), UpdatePlayer.max)
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -289,19 +290,59 @@ async def help(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
+@help.error
+async def help_error(interaction: discord.Interaction, error: Exception):
+    log(error)
+    embed = MyEmbed().system("Error", error)
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+@profile.error
+async def profile_error(interaction: discord.Interaction, error: Exception):
+    log(error)
+    embed = MyEmbed().system("Error", error)
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+@set_region.error
+async def set_region_error(interaction: discord.Interaction, error: Exception):
+    log(error)
+    embed = MyEmbed().system("Error", error)
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
 @add_player.error
 async def add_player_error(interaction: discord.Interaction, error: Exception):
+    log(error)
     embed = MyEmbed().system("Permission denied", "You must get an admin to execute this command")
     await interaction.response.send_message(embed=embed, ephemeral=True)
         
 @delete_player.error
 async def delete_player_error(interaction: discord.Interaction, error: Exception):
+    log(error)
     embed = MyEmbed().system("Permission denied", "You must get an admin to execute this command")
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 @setting.error
 async def setting_error(interaction: discord.Interaction, error: Exception):
+    log(error)
     embed = MyEmbed().system("Error", error)
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+@client.tree.command(
+    name="create-emoji",
+    description="Create an emoji."
+)
+@app_commands.describe(
+    name="Emoji Name",
+    url="Emoji URL"
+)
+async def create_emoji(interaction: discord.Interaction, name: str, url: str):
+    server_id = 1075087535925112973
+    success, result = await client.emoji.create_emoji(server_id=server_id, name=name, url=url)
+    if success:
+        print(result)
+        embed = MyEmbed().success("Emoji created", f"Emoji {name} has been created.")
+    else:
+        embed = MyEmbed().error("Error", result)
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 

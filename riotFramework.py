@@ -26,24 +26,38 @@ class RiotFramework():
             'platform': Platform.europe_west,
             'region': Region.europe_west,
         }
-        self.summoner_info = {
+        self.summoner = {
             'id': None,
             'puuid': None,
             'name': None,
-            'profile_icon': None,
+            'profileIcon': None,
             'level': None,
         }
-        self.ranks = {
-            'solo': None,
-            'flex': None,
+        self.league = {
+            'solo': {
+                'tier': None,
+                'rank': None,
+                'leaguePoints': None,
+                'wins': None,
+                'losses': None,
+            },
+            'flex': {
+                'tier': None,
+                'rank': None,
+                'leaguePoints': None,
+                'wins': None,
+                'losses': None,
+            },
         }
         self.mastery_score = None
         self.masteries = {
-            'champion_names': None,
-            'champion_levels': None,
-            'champion_points': None,
+            'championNames': None,
+            'championLevels': None,
+            'championPoints': None,
         }
-        self.challenges = None
+        self.challenges = {
+            'title': None,
+        }
         self.match_list = None
         self.history = None
         self.match = None
@@ -113,13 +127,13 @@ class RiotFramework():
                 'id': summoner['id'],
                 'puuid': summoner['puuid'],
                 'name': summoner['name'],
-                'profile_icon': f"{ddragon.url_profileicon}{summoner['profileIconId']}.png",
+                'profileIcon': f"{ddragon.url_profileIcon}{summoner['profileIconId']}.png",
                 'level': f"Lvl. {summoner['summonerLevel']}"
             }
         except ApiError as error:
             return RiotFramework.handle_api_error(error, name_or_puuid)
 
-    def fetch_ranks(self, encrypted_summoner_id: str):
+    def fetch_league(self, encrypted_summoner_id: str):
         """
         Fetches ranked data by encrypted summoner id.
 
@@ -127,20 +141,32 @@ class RiotFramework():
         :return: The summoner's ranked data.
         """
         try:
-            fetched_ranks = watcher.league.by_summoner(self.region.get('platform').value, encrypted_summoner_id)
-            calls = {0:'queueType', 1:'tier', 2:'rank', 3:'leaguePoints', 4:'wins', 5:'losses'}
-            solo = [None] * 6
-            flex = [None] * 6
+            fetched_league = watcher.league.by_summoner(self.region.get('platform').value, encrypted_summoner_id)
+            calls = {0:'tier', 1:'rank', 2:'leaguePoints', 3:'wins', 4:'losses'}
+            solo = {
+                'tier': None,
+                'rank': None,
+                'leaguePoints': None,
+                'wins': None,
+                'losses': None,
+            }
+            flex = {
+                'tier': None,
+                'rank': None,
+                'leaguePoints': None,
+                'wins': None,
+                'losses': None,
+            }
 
-            for i in range(len(fetched_ranks)):
-                ranks = fetched_ranks[i]
+            for i in range(len(fetched_league)):
+                ranks = fetched_league[i]
                 queue_type = ranks['queueType']
                 if queue_type == 'RANKED_SOLO_5x5':
                     for j in range(len(calls)):
-                        solo[j] = ranks[calls[j]]
+                        solo[calls[j]] = ranks[calls[j]]
                 elif queue_type == 'RANKED_FLEX_SR':
                     for j in range(len(calls)):
-                        flex[j] = ranks[calls[j]]
+                        flex[calls[j]] = ranks[calls[j]]
             return {'solo': solo, 'flex': flex}
         except ApiError as error:
             return RiotFramework.handle_api_error(error, encrypted_summoner_id)
@@ -172,7 +198,7 @@ class RiotFramework():
                 levels.append(f"Level_{champion['championLevel']}")
                 points.append(f"{champion['championPoints']:,}")
             names = [Champion.from_id(id) for id in ids]
-            return {'champion_names': names, 'champion_levels': levels, 'champion_points': points}
+            return {'championNames': names, 'championLevels': levels, 'championPoints': points}
         except ApiError as error:
             return RiotFramework.handle_api_error(error, encrypted_summoner_id)
 
@@ -187,9 +213,9 @@ class RiotFramework():
             challenges = watcher.challenges.by_puuid(self.region.get('platform').value, puuid)
             tittle_id = challenges.get('preferences', {}).get('title')
             if not tittle_id:
-                return None
+                return {'title': None}
             title = Challenges.from_id(tittle_id)
-            return (title, True)
+            return {'title': title}
         except ApiError as error:
             return RiotFramework.handle_api_error(error, puuid)
 
@@ -386,34 +412,34 @@ class RiotFramework():
         result = self.fetch_summoner(name_or_puuid=name, by_name=True)
         if isinstance(result, str):
             return result
-        self.summoner_info = result
+        self.summoner = result
 
-        result = self.fetch_ranks(self.summoner_info.get('id'))
+        result = self.fetch_league(self.summoner.get('id'))
         if isinstance(result, str): 
             return result
         self.ranks = result
 
-        result = self.fetch_mastery_score(self.summoner_info.get('id'))
+        result = self.fetch_mastery_score(self.summoner.get('id'))
         if isinstance(result, str): 
             return result
         self.mastery_score = result
 
-        result = self.fetch_masteries(self.summoner_info.get('id'))
+        result = self.fetch_masteries(self.summoner.get('id'))
         if isinstance(result, str): 
             return result
         self.masteries = result
 
-        result = self.fetch_challenges(self.summoner_info.get('puuid'))
+        result = self.fetch_challenges(self.summoner.get('puuid'))
         if isinstance(result, str): 
             return result
         self.challenges = result
 
     def request_match_history(self):
         """ Request match history of a summoner. """
-        if self.summoner_info is None: 
+        if self.summoner is None: 
             return 'Summoner Name missing'
 
-        result = self.fetch_match_list(self.summoner_info.get('puuid'), self.match_max)
+        result = self.fetch_match_list(self.summoner.get('puuid'), self.match_max)
         if isinstance(result, str): 
             return result
         self.match_list = result
@@ -421,7 +447,7 @@ class RiotFramework():
         match = []
         try:
             for match_id in self.match_list:
-                result = self.fetch_match(match_id, self.summoner_info.get('puuid'))
+                result = self.fetch_match(match_id, self.summoner.get('puuid'))
                 if isinstance(result, str): 
                     return result
                 match.append(result)
@@ -481,26 +507,29 @@ class RiotFramework():
         :param player: player data
         :return: match data if a new ranked match is found, else return error message
         """
-        match_list = self.fetch_match_list(player[3], 1)
+        match_list = self.fetch_match_list(player.get('summoner').get('puuid'), 1)
         if not match_list:
             return "Match not found"
 
         match_id = match_list[0]
-        if match_id == player[5]:
+        if match_id == player.get('matchId'):
             return "No new match"
+        player['matchId'] = match_id
 
-        match = self.fetch_match(match_id, player[3])
+        match = self.fetch_match(match_id, player.get('summoner').get('puuid'))
         if match[0].get('gameDescription') != "Ranked Solo/Duo":
             return "Not a ranked match"
 
-        rank = self.fetch_ranks(player[2]).get('solo')[1:]
+        league = self.fetch_league(player.get('summoner').get('id')).get('solo')
+        if isinstance(league, str):
+            return league
 
         try:
-            last_rank = player[4]
-            current_rank = rank
-            try: last_lp = int(last_rank[2])
+            last_league = player.get('league')
+            current_league = league
+            try: last_lp = int(last_league.get('leaguePoints'))
             except: last_lp = 0
-            try: current_lp = int(rank[2])
+            try: current_lp = int(current_league.get('leaguePoints'))
             except: current_lp = 0
             lp = abs(current_lp - last_lp)
             win = match[1]['win']
@@ -513,24 +542,29 @@ class RiotFramework():
             if last_lp == 100 and current_lp == 100:
                 result = "Promotion Series"
 
-            if last_rank[0] == current_rank[0] == "None":
-                if "PLACEMENTS" in player[7]:
-                    result = strAdd(player[7])
-                if "PLACEMENTS 10/10" in player[7]:
-                    result = f"PLACED INTO {current_rank[0]} {current_rank[1]}"
+            if last_league.get('tier') == current_league.get('tier') == "None":
+                if "PLACEMENTS" in player.get('resume'):
+                    result = strAdd(player.get('resume'))
+                if "PLACEMENTS 10/10" in player.get('resume'):
+                    result = f"PLACED INTO {current_league.get('tier')} {current_league.get('rank')}"
 
-            if last_rank[1] != current_rank[1]:
+            if last_league.get('rank') != current_league.get('rank'):
                 if win:
-                    result = f"PROMOTED TO {current_rank[0]} {current_rank[1]}"
+                    result = f"PROMOTED TO {current_league.get('tier')} {current_league.get('rank')}"
                 else:
-                    result = f"DEMOTE TO {current_rank[0]} {current_rank[1]}"
+                    result = f"DEMOTE TO {current_league.get('tier')} {current_league.get('rank')}"
         except Exception as error:
+            print(error)
             result = "Error"
 
-        player[5] = match_id                                    # Update match ID
-        player[7] = result                                      # Update match result
-        player[4] = rank                                        # Update rank
-        player[1] = self.fetch_summoner(player[3]).get('name')  # Update Summoner Name
+        player['league'] = league
+        player['resume'] = result
+        
+        summoner = self.fetch_summoner(player.get('summoner').get('puuid'))
+        if isinstance(summoner, str):
+            return summoner
+        player['summoner'] = summoner
+        
 
         return match
 

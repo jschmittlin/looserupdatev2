@@ -1,10 +1,13 @@
 from enum import Enum
 import json
 import requests
+from io import BytesIO
 
 # Discord bot
 import discord
 from discord import app_commands
+
+PATH = './data/'
 
 # List of activities
 ACTIVITIES = [
@@ -22,73 +25,174 @@ ACTIVITIES = [
     discord.Game(name="to support KCorp !"),
 ]
 
-# pandas
-import pandas as pd
+class Emoji:
+    def __init__(self, bot):
+        self.bot = bot
 
-class UpdatePlayer():
-    file = 'players.xlsx'
-    max = 5    
-    data = []
+    async def create_emoji(self, server_id, name, url):
+        response = requests.get(url)
+        if response.status_code != 200:
+            return False, 'Failed to get image from URL.'
+        image_data = BytesIO(response.content)
 
-    @staticmethod
-    def save(data):
+        server = self.bot.get_guild(server_id)
+        if server is None:
+            return False, 'Invalid server ID.'
+
+        emoji_data = image_data.read()
+
         try:
-            df = pd.DataFrame(data, columns=["Region", "Summoner_Name", "ID", "PUUID", "Ranks", "Match_ID", "Profile_Icon", "Resume"])
-            df.to_excel(UpdatePlayer.file, index=False, header=True)
-            return True
-        except Exception as error: return error
+            emoji = await server.create_custom_emoji(name=name, image=emoji_data)
+            return True, emoji
+        except discord.errors.HTTPException:
+            return False, 'Failed to create emoji.'
 
-    @staticmethod
-    def load():
-        try:
-            df = pd.read_excel(UpdatePlayer.file)
-            UpdatePlayer.data.clear()
-            for index, row in df.iterrows():
-                player = []
-                player.append(row["Region"])                                                                    # 0: Region
-                player.append(row["Summoner_Name"])                                                             # 1: Summoner Name
-                player.append(row["ID"])                                                                        # 2: ID
-                player.append(row["PUUID"])                                                                     # 3: PUUID
-                player.append(row["Ranks"].replace("'", "").replace("[", "").replace("]", "").split(", "))      # 4: Ranks
-                player.append(row["Match_ID"])                                                                  # 5: Match ID
-                player.append(row["Profile_Icon"])                                                              # 6: Profile Icon
-                player.append(row["Resume"])                                                                    # 7: Resume Games Ranks
-                UpdatePlayer.data.append(player)
-            return UpdatePlayer.data
-        except Exception as error: return error
+class Server:
+    file = PATH + 'servers.json'
+    type = ['item', 'champion']
 
-    @staticmethod
-    def get_summoner_name():
+    @classmethod
+    def get_server(cls, type: str) -> int:
+        if type not in cls.type:
+            raise ValueError(f"Type must be one of {cls.type}")
         try:
-            df = pd.read_excel(UpdatePlayer.file)
-            return df["Summoner_Name"].tolist()
-        except Exception as error: return error
-
-    @staticmethod
-    def get_region(name: str):
-        try:
-            for player in UpdatePlayer.data:
-                if player[1] == name:
-                    return player[0]
+            with open(cls.file, 'r') as file:
+                data = json.load(file)
+            for server in data['data'][type]:
+                if server['emoji']['slotsAvailable'] != 0:
+                    return server['id']
             return None
-        except Exception as error: return error
+        except Exception as error:
+            raise RuntimeError(f"Failed to get server ID from {cls.file}") from error
 
-    @staticmethod
-    def delete():
+    @classmethod
+    def decrease_slot(cls, type: str, server_id: int):
+        if type not in cls.type:
+            raise ValueError(f"Type must be one of {cls.type}")
         try:
-            UpdatePlayer.data.clear()
-            return UpdatePlayer.save(UpdatePlayer.data)
-        except Exception as error: return error
+            with open(cls.file, 'r') as file:
+                data = json.load(file)
+            for server in data['data'][type]:
+                if server['id'] == server_id:
+                    server['emoji']['slotsAvailable'] -= 1
+            with open(cls.file, 'w') as file:
+                json.dump(data, file)
+        except Exception as error:
+            raise RuntimeError(f"Failed to decrease slot for server {server_id}") from error
+    
 
-    @staticmethod
-    def remove(name: str):
+class Item:
+    __undef__ = []
+    file = PATH + 'items.json'
+
+    @classmethod
+    def add_undefined(cls, id: int):
+        if id not in cls.__undef__:
+            cls.__undef__.append(id)
+
+    @classmethod
+    def remove_undefined(cls, id: int):
+        if id in cls.__undef__:
+            cls.__undef__.remove(id)
+
+    @classmethod
+    def get_emoji(cls, id: int) -> str:
         try:
-            for player in UpdatePlayer.data:
-                if player[1] == name:
-                    UpdatePlayer.data.remove(player)
-                    return UpdatePlayer.save(UpdatePlayer.data)
-            return False
-        except Exception as error: return error
+            with open(cls.file, 'r') as file:
+                data = json.load(file)
+            if str(id) not in data['data']:
+                cls.add_undefined(id)
+                return data['data'].get('0', None)
+            return data['data'].get(str(id), None)
+        except Exception as error:
+            raise RuntimeError(f"Failed to get emoji for item {id}") from error
+
+    @classmethod
+    def set_emoji(cls, id: int, emoji: str):
+        try:
+            with open(cls.file, 'r') as file:
+                data = json.load(file)
+            data['data'][str(id)] = emoji
+
+            with open(cls.file, 'w') as file:
+                json.dump(data, file)
+        except Exception as error:
+            raise RuntimeError(f"Failed to set emoji for item {id}") from error
+
+    @classmethod
+    async def add_emoji(cls, bot: discord.Client, name: str, url: str):
+        server_id = Server.get_server('item')
+        if server_id is None:
+            raise RuntimeError("No server available")
+
+        success, emoji = await Emoji(bot).create_emoji(server_id, name, url)
+        if not success:
+            raise RuntimeError(emoji)
+        
+        cls.set_emoji(name, str(emoji))
+        Server.decrease_slot('item', server_id)
+
+
+class UpdatePlayer:
+    file = PATH + 'players.json'
+    data = []
+    max = 5
+
+    @classmethod
+    def save(cls, data: list):
+        if not isinstance(data, list):
+                raise TypeError("Data must be a list")
+        try:
+            with open(cls.file, 'w') as file:
+                json.dump(data, file)
+        except Exception as error:
+            raise RuntimeError(f"Failed to save data to {cls.file}") from error
+
+    @classmethod
+    def load(cls) -> list:
+        try:
+            with open(cls.file, 'r') as file:
+                cls.data = json.load(file)
+        except Exception as error:
+            raise RuntimeError(f"Failed to load data from {cls.file}") from error
+        else:
+            return cls.data
+
+    @classmethod
+    def get_summoner_names(cls) -> list:
+        try:
+            summoner_names = [player.get('summoner').get('name') for player in cls.data]
+            return summoner_names
+        except Exception as error:
+            raise RuntimeError("Failed to get summoner names from") from error
+
+    @classmethod
+    def get_region(cls, name: str) -> str:
+        try:
+            for player in cls.data:
+                if player.get('summoner').get('name') == name:
+                    return player.get('region')
+            return None
+        except Exception as error:
+            raise RuntimeError(f"Failed to get region for summoner {name}") from error
+
+    @classmethod
+    def delete(cls):
+        try:
+            cls.data.clear()
+            cls.save(cls.data)
+        except Exception as error:
+            raise RuntimeError("Failed to delete data") from error
+
+    @classmethod
+    def remove(cls, name: str):
+        try:
+            player_to_remove = [player for player in cls.data if player.get('summoner').get('name') == name]
+            if player_to_remove:
+                cls.data.remove(player_to_remove[0])
+                cls.save(cls.data)
+        except Exception as error:
+            raise RuntimeError(f"Failed to remove summoner {name}") from error
 
 
 class Region(Enum):
@@ -153,13 +257,11 @@ class Platform(Enum):
         except AttributeError: return Platform(region).region
 
 
-ITEM_UNDEFINED = []
-
 class ddragon:
     url_version = 'http://ddragon.leagueoflegends.com/api/versions.json'
     version = requests.get(url_version).json()[0]
 
-    url_profileicon = f'http://ddragon.leagueoflegends.com/cdn/{version}/img/profileicon/'
+    url_profileIcon = f'http://ddragon.leagueoflegends.com/cdn/{version}/img/profileicon/'
     url_champion = f'http://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/champion.json'
     url_challenges = f'https://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/challenges.json'
     url_queues = 'https://static.developer.riotgames.com/docs/lol/queues.json'
