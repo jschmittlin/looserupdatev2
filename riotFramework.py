@@ -417,7 +417,7 @@ class RiotFramework():
         result = self.fetch_league(self.summoner.get('id'))
         if isinstance(result, str): 
             return result
-        self.ranks = result
+        self.league = result
 
         result = self.fetch_mastery_score(self.summoner.get('id'))
         if isinstance(result, str): 

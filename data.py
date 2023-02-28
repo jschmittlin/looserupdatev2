@@ -268,6 +268,7 @@ class ddragon:
     url_runesReforged = f'http://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/runesReforged.json'
     url_summoner = f'http://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/summoner.json'
     url_item = f'http://ddragon.leagueoflegends.com/cdn/{version}/img/item/'
+    url_imgChampion = f'http://ddragon.leagueoflegends.com/cdn/{version}/img/champion/'
 
 
     @staticmethod
@@ -293,6 +294,10 @@ class ddragon:
     @staticmethod
     def get_item(id: int) -> str:
         return f'{ddragon.url_item}{id}.png'
+
+    @staticmethod
+    def get_imgChampion(name: str) -> str:
+        return f'{ddragon.url_imgChampion}{name}.png'
 
 
 class Champion():

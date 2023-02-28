@@ -18,16 +18,16 @@ from response import MyEmbed, MyViewProfile, MyViewUpdateMatch
 from data import Emoji, UpdatePlayer, Region, ddragon, Item, ACTIVITIES
 UpdatePlayer.load()
 
-# dotenv
-import os
-from dotenv import load_dotenv
-load_dotenv()
-
 # Logging
 import time
 def log(message, level="INFO"):
     current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
     print("[{}] [{:<8}] LooserUpdateV2: {}".format(current_time, level, message))
+
+# dotenv
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 # Retrieve the token from the environment variable
 MY_GUILD = discord.Object(id=os.getenv('GUILD_ID'))
@@ -100,7 +100,6 @@ class MyClient(discord.Client):
             Item.remove_undefined(item)
             log("Add emoji: " + str(item))
 
-
     # Wait until the bot is ready before starting the task
     @update_item_undefined_task.before_loop
     async def before_update_item_undefined_task(self):
@@ -109,7 +108,6 @@ class MyClient(discord.Client):
 
 
 client = MyClient()
-
 
 @client.tree.command(
     name="set-region",
@@ -140,34 +138,31 @@ async def profile(interaction: discord.Interaction, name: str):
     log("/profile " + name)
     await interaction.response.defer()
     embed = MyEmbed()
-    try:
-        framework.reset()
+    framework.reset()
 
-        result = framework.request_profile(name)
-        if isinstance(result, str):
-            return await interaction.followup.send(embed=embed.error(result))
+    result = framework.request_profile(name)
+    if isinstance(result, str):
+        return await interaction.followup.send(embed=embed.error(result))
 
-        match_errors = False
-        result = framework.request_match_history()
-        if isinstance(result, str):
-            return await interaction.followup.send(embed=embed.error(result))
-        if isinstance(result, tuple):
-            match_errors = True
+    match_errors = False
+    result = framework.request_match_history()
+    if isinstance(result, str):
+        return await interaction.followup.send(embed=embed.error(result))
+    if isinstance(result, tuple):
+        match_errors = True
 
-        embed.init_data(framework.region, framework.summoner, framework.league, framework.mastery_score,
-        framework.masteries, framework.challenges, framework.history, framework.match)
+    embed.init_data(framework.region, framework.summoner, framework.league, framework.mastery_score,
+    framework.masteries, framework.challenges, framework.history, framework.match)
 
-        if match_errors:
-            embed_history = embed.error_match(result[0], result[1])
-        else:
-            embed_history = embed.history_embed()
+    if match_errors:
+        embed_history = embed.error_match(result[0], result[1])
+    else:
+        embed_history = embed.history_embed()
 
-        view = MyViewProfile()
-        view.init_data(embed.profile_embed(), embed_history, framework.match_select, framework.match)
-        view.children[0].disabled = True
-        await interaction.followup.send(embed=embed.profile_embed(), view=view)
-    except Exception as error:
-        await interaction.followup.send(embed=embed.error(error))
+    view = MyViewProfile()
+    view.init_data(embed.profile_embed(), embed_history, framework.match_select, framework.match)
+    view.children[0].disabled = True
+    await interaction.followup.send(embed=embed.profile_embed(), view=view)
 
 
 @client.tree.command(
@@ -188,36 +183,35 @@ async def add_player(interaction: discord.Interaction, name: str, region: app_co
     data = UpdatePlayer.load()
     for player in data:
         if player.get('region') == region.value and player.get('summoner').get('name').lower() == name.lower():
-            return await interaction.response.send_message(embed=embed.system("Player is already in the list.", "Please remove the player from the list first."), ephemeral=True)
+            embed = embed.system("Player is already in the list.", "Please remove the player from the list first.")
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    try:
-        if len(data) >= UpdatePlayer.max:
-            return await interaction.response.send_message(embed=embed.system("Update list is full.", "Please remove some players from the list."), ephemeral=True)
-        
-        await interaction.response.defer()
+    if len(data) >= UpdatePlayer.max:
+        embed = embed.system("Update list is full.", "Please remove some players from the list.")
+        return await interaction.response.send_message(embed=embed, ephemeral=True)
+    
+    await interaction.response.defer()
 
-        summoner = framework.fetch_summoner(name_or_puuid=name, region=region.value, by_name=True)
-        if isinstance(summoner, str):
-            return await interaction.followup.send(embed=embed.error(summoner))
+    summoner = framework.fetch_summoner(name_or_puuid=name, region=region.value, by_name=True)
+    if isinstance(summoner, str):
+        return await interaction.followup.send(embed=embed.error(summoner))
 
-        league = framework.fetch_league(summoner.get('id')).get('solo')
-        try: match_id = framework.fetch_match_list(summoner.get('puuid'), 1)[0]
-        except: match_id = None
+    league = framework.fetch_league(summoner.get('id')).get('solo')
+    try: match_id = framework.fetch_match_list(summoner.get('puuid'), 1)[0]
+    except: match_id = None
 
-        player = {
-            "region": region.value,
-            "summoner": summoner,
-            "league": league,
-            "matchId": match_id,
-            "resume": "PLACEMENTS 0/10"
-        }
-        
-        data.append(player)
-        UpdatePlayer.save(data)
+    player = {
+        "region": region.value,
+        "summoner": summoner,
+        "league": league,
+        "matchId": match_id,
+        "resume": "PLACEMENTS 0/10"
+    }
+    
+    data.append(player)
+    UpdatePlayer.save(data)
 
-        await interaction.followup.send(embed=embed.success(f"{summoner.get('name')} #{region.value}", "Added to the Update list."))
-    except Exception as error:
-        await interaction.followup.send(embed=embed.error(error))
+    await interaction.followup.send(embed=embed.success(f"{summoner.get('name')} #{region.value}", "Added to the Update list."))
 
 
 async def delete_player_autocomplete(
@@ -259,22 +253,6 @@ async def setting(interaction: discord.Interaction):
     log("/setting")
     region = framework.region.get('region')
     embed = MyEmbed().setting(region, UpdatePlayer.load(), UpdatePlayer.max)
-    await interaction.response.send_message(embed=embed, ephemeral=True)
-
-
-@client.tree.command(
-    name="dm",
-    description="Send a message to a user."
-)
-@app_commands.describe(
-    user="User",
-    message="Message"
-)
-@app_commands.checks.has_any_role(ROLE_ADMIN_01)
-async def dm(interaction: discord.Interaction, user: discord.User, *, message: str):
-    log("/dm " + user.name + " " + message)
-    await user.send(message)
-    embed = MyEmbed().success(f"Message has been sent to {user.name}", message)
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 

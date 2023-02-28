@@ -13,7 +13,7 @@ from resources import Emoji, Icon, Color
 from data import Item
 
 
-def replaceSpaces(string: str):
+def replace_spaces(string: str):
     """ replace spaces with underscores """
     return string.replace(' ', '%20')
 
@@ -21,12 +21,13 @@ def percent(wins: int, losses: int):
     """ calculate the winrate """
     return round((wins / (wins + losses)) * 100)
 
-def spacing(rank: str, wins: int, losses: int):
+def spacing(tier: str, wins: int, losses: int):
     """ calculate the spacing between the rank and the winrate """
-    if rank == 'IRON' or rank == 'GOLD': spaces = f'{Emoji.blank}{Emoji.blank}{Emoji.blank} \u200b \u200b '
-    if rank == 'BRONZE' or rank == 'SILVER' or rank == 'MASTER': spaces = f'{Emoji.blank}{Emoji.blank}{Emoji.blank}'
-    if rank == 'PLATINUM' or rank == 'DIAMOND': spaces = f'{Emoji.blank} \u200b \u200b \u200b \u200b '
-    if rank == 'GRANDMASTER' or rank == 'CHALLENGER': return f'{Emoji.blank}'
+    spaces = ""
+    if tier == 'IRON' or tier == 'GOLD': spaces = f'{Emoji.blank}{Emoji.blank}{Emoji.blank} \u200b \u200b '
+    if tier == 'BRONZE' or tier == 'SILVER' or tier == 'MASTER': spaces = f'{Emoji.blank}{Emoji.blank}{Emoji.blank}'
+    if tier == 'PLATINUM' or tier == 'DIAMOND': spaces = f'{Emoji.blank} \u200b \u200b \u200b '
+    if tier == 'GRANDMASTER' or tier == 'CHALLENGER': return f'{Emoji.blank}'
     if wins > 99: spaces += ' \u200b '
     if losses > 99: spaces += ' \u200b '
     return spaces
@@ -61,7 +62,7 @@ class MyEmbed:
             description = f'{self.level}'
         
         try:
-            opgg = f'https://www.op.gg/summoners/{self.region}/{replaceSpaces(self.name)}'
+            opgg = f'https://www.op.gg/summoners/{self.region}/{replace_spaces(self.name)}'
         except:
             opgg = f'https://www.op.gg/'
 
@@ -82,13 +83,24 @@ class MyEmbed:
         value_flex = f'{Emoji.tier["UNRANKED"]} \u200b **Unranked** \n{Emoji.blank}'
 
         if self.solo.get('tier') is not None:
-            spaces_solo = spacing(self.solo.get('rank'), self.solo.get('wins'), self.solo.get('losses'))
-            value_solo = f"{Emoji.tier[self.solo[1]]} \u200b **{self.solo.get('tier')} {self.solo.get('rank')}**{spaces_solo}{self.solo.get('leaguePoints')} LP\n"
-            value_solo += f"**Win Rate {percent(self.solo.get('wins'), self.solo.get('losses'))}%** {Emoji.blank} {self.solo.get('wins')}W / {self.solo.get('losses')}L\n{Emoji.blank}"
+            tier = self.solo.get('tier')
+            rank = self.solo.get('rank')
+            wins = self.solo.get('wins')
+            losses = self.solo.get('losses')
+            lp = self.solo.get('leaguePoints')
+            spaces_solo = spacing(tier, wins, losses)
+            value_solo = f"{Emoji.tier[tier]} \u200b **{tier} {rank}**{spaces_solo}{lp} LP\n"
+            value_solo += f"**Win Rate {percent(wins, losses)}%** {Emoji.blank} {wins}W / {losses}L\n{Emoji.blank}"
+
         if self.flex.get('tier') is not None:
-            spaces_flex = spacing(self.flex.get('rank'), self.flex.get('wins'), self.flex.get('losses'))
-            value_flex = f"{Emoji.tier[self.flex[1]]} \u200b **{self.flex.get('tier')} {self.flex.get('rank')}**{spaces_flex}{self.flex.get('leaguePoints')} LP\n"
-            value_flex += f"**Win Rate {percent(self.flex.get('wins'), self.flex.get('losses'))}%** {Emoji.blank} {self.flex.get('wins')}W / {self.flex.get('losses')}L\n{Emoji.blank}"
+            tier = self.flex.get('tier')
+            rank = self.flex.get('rank')
+            wins = self.flex.get('wins')
+            losses = self.flex.get('losses')
+            lp = self.flex.get('leaguePoints')
+            spaces_flex = spacing(tier, wins, losses)
+            value_flex = f"{Emoji.tier[tier]} \u200b **{tier} {rank}**{spaces_flex}{lp} LP\n"
+            value_flex += f"**Win Rate {percent(wins, losses)}%** {Emoji.blank} {wins}W / {losses}L\n{Emoji.blank}"
 
         embed.add_field(name='SOLO/DUO', value=value_solo, inline=True)
         embed.add_field(name='FLEX 5V5', value=value_flex, inline=True)
@@ -106,10 +118,8 @@ class MyEmbed:
             champion_name = self.masteries.get('championNames')[i]
             champion_level = self.masteries.get('championLevels')[i]
             champion_point = self.masteries.get('championPoints')[i]
-            
             champion_mastery = f'{Emoji.mastery[champion_level]} \u200b {Emoji.champion[champion_name]} \u200b **{champion_name.upper()}** \n'
             champion_mastery += f'{Emoji.mastery["default"]} \u200b {champion_point} pts \n{Emoji.blank}'
-            
             champion_masteries.append(champion_mastery)
 
         embed.add_field(name='HIGHEST', value=champion_masteries[0], inline=True)
@@ -184,7 +194,7 @@ class MyEmbed:
         resume = player.get('resume')
 
         try:
-            opgg = f'https://www.op.gg/summoners/{region}/{replaceSpaces(name)}'
+            opgg = f'https://www.op.gg/summoners/{region}/{replace_spaces(name)}'
         except:
             opgg = f'https://www.op.gg/'
 
@@ -470,7 +480,7 @@ class MyEmbed:
         )
         embed.add_field(
             name="delete-player",
-            value="```Delete all players from the Update list```",
+            value="```Delete player from the Update list```",
             inline=False
         )
         return embed
@@ -481,7 +491,7 @@ class MyViewProfile(discord.ui.View):
     """ View for the bot """
 
     def __init__(self):
-        super().__init__()
+        super().__init__(timeout=None)
         self.embed_profile = None
         self.embed_history = None
         self.embed_match = None
@@ -557,7 +567,7 @@ class MyViewUpdateMatch(discord.ui.View):
     """ View for the bot """
 
     def __init__(self, match, player):
-        super().__init__()
+        super().__init__(timeout=None)
         self.match_update = match
         self.player_update = player
 
@@ -571,7 +581,7 @@ class MyViewUpdateBack(discord.ui.View):
     """ View for the bot """
 
     def __init__(self, match, player):
-        super().__init__()
+        super().__init__(timeout=None)
         self.match_update = match
         self.player_update = player
 
