@@ -1,3 +1,21 @@
+import discord
+
+# List of activities
+ACTIVITIES = [
+    discord.Activity(type=discord.ActivityType.watching, name="you"),
+    discord.Activity(type=discord.ActivityType.watching, name="Medhi put pressure on"),
+    discord.Activity(type=discord.ActivityType.watching, name="Medhi be shadow ban"),
+    discord.Activity(type=discord.ActivityType.watching, name="botlane feed"),
+    discord.Activity(type=discord.ActivityType.watching, name="Jérôme farmer these jungle camps"),
+    discord.Activity(type=discord.ActivityType.listening, name="Valentin raging"),
+    discord.Activity(type=discord.ActivityType.listening, name="La déprime"),
+    discord.Game(name="for /help"),
+    discord.Game(name="at tracking down losers"),
+    discord.Game(name="Blitzcrank's Poro Roundup"),
+    discord.Game(name="Doom Bots"),
+    discord.Game(name="to support KCorp !"),
+]
+
 class Icon:
     emrata = 'https://cdn.discordapp.com/attachments/598865284786552852/1037836694327672952/EMRATA_008a.jpg'
     nav_profile = 'https://cdn.discordapp.com/attachments/598865284786552852/1039235266428284948/nav-icon-profile.png'
