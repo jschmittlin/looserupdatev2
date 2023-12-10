@@ -43,11 +43,7 @@ class LooserUpdateV2Bot(AutoShardedBot):
         activity = random.choice(self.settings.discord_activities)
         await self.change_presence(activity=discord.Activity(type=getattr(discord.ActivityType, activity["type"]), name=activity["name"]))
 
-<<<<<<< HEAD
     @tasks.loop(hours=24)
-=======
-    @tasks.loop(minutes=3)
->>>>>>> 25a9e4fa0b958afc5ed854487e87788d88997480
     async def update_ddragon_cache_loop(self) -> None:
         from .common import (
             ddragon,    

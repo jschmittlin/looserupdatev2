@@ -96,5 +96,3 @@ class Settings(object):
     @property
     def discord_activities(self):
         return self.__discord_activities
-
-#TODO: logging settings

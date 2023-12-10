@@ -75,6 +75,7 @@ class ParticipantData(CoreData):
         "champLevel": "championLevel",
         "summoner1Id": "summonerSpell1Id",
         "summoner2Id": "summonerSpell2Id",
+        "gameEndedInEarlySurrender": "remake",
     }
 
     def __call__(self, **kwargs):
@@ -85,7 +86,6 @@ class ParticipantData(CoreData):
         self.perks = [perk["perk"] for perk in selections]
         self.items = [str(kwargs.pop(f"item{i}", None)) for i in range(7)]
         self.augments = [kwargs.pop(f"playerAugment{i}", None) for i in range(1, 5)]
-
         self.creepScore = kwargs.pop("totalMinionsKilled") + kwargs.pop("neutralMinionsKilled")
 
         super().__call__(**kwargs)
@@ -338,6 +338,18 @@ class Participant(LolObject):
         return self._data[ParticipantData].totalGold
 
     @property
+    def damage_dealt(self) -> int:
+        return self._data[ParticipantData].totalDamageDealtToChampions
+
+    @property
+    def damage_taken(self) -> int:
+        return self._data[ParticipantData].totalDamageTaken
+
+    @property
+    def crowd_control(self) -> int:
+        return self._data[ParticipantData].timeCCingOthers
+
+    @property
     def items(self) -> List[Item]:
         return Items(included_data=self._data[ParticipantData].items)
 
@@ -382,6 +394,14 @@ class Participant(LolObject):
         return self._data[ParticipantData].summonerName
 
     @property
+    def riot_game_name(self) -> str:
+        return self._data[ParticipantData].riotIdGameName
+
+    @property
+    def riot_tag_line(self) -> str:
+        return self._data[ParticipantData].riotIdTagline
+
+    @property
     def team_id(self) -> int:
         return self._data[ParticipantData].teamId
 
@@ -396,6 +416,10 @@ class Participant(LolObject):
     @property
     def win(self) -> bool:
         return self._data[ParticipantData].win
+
+    @property
+    def remake(self) -> bool:
+        return self._data[ParticipantData].remake
 
 class Team(LolObject):
     _data_types = {TeamData}

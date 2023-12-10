@@ -9,14 +9,21 @@ from ..data import Region, Queue, Tier, Lane
 from ..resources import Icon, Color 
 from ..resources.emoji import blank, Mastery, Match
 
-def blitz_profile(name: str, region: Region) -> str:
-    return f"https://blitz.gg/lol/profile/{str(region.platform).lower()}/{name.replace(' ', '%20')}"
 
-def blitz_match(name: str, region: Region, match_id: str) -> str:
-    return f"https://blitz.gg/lol/match/{str(region.platform).lower()}/{name.replace(' ', '%20')}/{match_id.split('_')[1]}"
+def blitz_profile(name: str, region: Region) -> str:
+    return "https://blitz.gg/lol/profile/{region}/{name}".format(
+        region=str(region.platform).lower(), name=name.replace(' ', '%20'),
+    )
+
+def blitz_match(name: str, tag: str, region: Region, match_id: str) -> str:
+    return "https://blitz.gg/lol/match/{region}/{name}-{tag}/{matchId}".format(
+        region=str(region.platform).lower(), name=name.replace(' ', '%20'), tag=tag, matchId=match_id.split('_')[1],
+    )
 
 def opgg(name: str, region: str) -> str:
-    return f"https://www.op.gg/summoners/{region.lower()}/{name.replace(' ', '%20')}"
+    return "https://www.op.gg/summoners/{region}/{name}".format(
+        region=str(region.platform).lower(), name=name.replace(' ', '%20'),
+    )
 
 def get_winrate(wins: int, losses: int) -> Union[int, str]:
     try:
@@ -273,10 +280,10 @@ class Embed:
 
         player = next((p for p in info.participants if p.puuid == puuid), info.participants[0])
 
+        win = "REMAKE" if player.remake else (Match.victory if player.win else Match.defeat)
         map_emoji = queue.emoji_victory if player.win else queue.emoji_defeat
         items_emoji = " ".join(item.get_emoji for item in player.items)
         position_emoji = f"{player.position.emoji_hover} {player.position}"
-        kda_data = str(get_kda(player.kills, player.deaths, player.assists)).replace('.', ',')
         
         field_2_blank = ""
         if player.position == Lane.top:
@@ -292,43 +299,43 @@ class Embed:
         if player.position == Lane.unselected:
             field_2_blank = blank * 1
 
-        if queue == Queue.aram:
+        if queue == Queue.aram or queue == Queue.cherry:
             field_2_blank = blank * 5 + " \u200b "
-        if queue == Queue.normal_draft_five:
-            field_2_blank = ""
-        if queue == Queue.ranked_solo_five:
+        if queue == Queue.normal_draft_five or queue == Queue.ranked_solo_five:
             field_2_blank = ""
         if queue == Queue.ranked_flex_five:
             field_2_blank += " \u200b \u200b \u200b \u200b"
 
         embed.add_field(
-            name=f"**{map_emoji} \u200b \u200b {Match.victory if player.win else Match.defeat}**{blank}",
+            name=f"**{map_emoji} \u200b \u200b {win}**{blank}",
             value=(
                 f"{player.champion.get_emoji}"
                 f"{blank}"
                 f"{player.spell_d.get_emoji} {player.spell_f.get_emoji}\n"
                 f"**{player.kills} / {player.deaths} / {player.assists}**"
-                
             ),
             inline=True,
         )
         embed.add_field(
-            name=f"**{field_2_blank}{position_emoji} \u200b \u200b • \u200b \u200b {queue.description}**",
+            name=f"**{field_2_blank}{position_emoji} \u200b • \u200b {queue.description}**",
             value=(
                 f"{player.runes[0].get_emoji}"
                 f"{blank}{items_emoji}\n"
-                f"{Match.kda} **{kda_data}**"
-                f"{blank}"
-                f"{Match.minions} **{player.creep_score:,}**"
-                f"{blank}"
-                f"{Match.gold} **{player.gold:,}**"
+                f"{Match.sword} **{player.damage_dealt:,}**"
+                " \u200b \u200b \u200b "
+                f"{Match.shield} **{player.damage_taken:,}**"
+                " \u200b \u200b \u200b "
+                f"{Match.cc} **{player.crowd_control:,}**"
             ),
             inline=True,
         )
         embed.add_field(
-            name=f"**• \u200b \u200b {queue.map}**",
+            name=f"**• \u200b {queue.map}**",
             value=(
-                f"**{info.duration} \u200b \u200b • \u200b \u200b <t:{info.end_timestamp}:R>**\n"
+                f"**{info.duration} \u200b • \u200b <t:{info.end_timestamp}:R>**\n"
+                f"{Match.minions} **{player.creep_score:,}**"
+                f"{blank}"
+                f"{Match.gold} **{player.gold:,}**"
             ),
             inline=True,
         )
@@ -346,14 +353,14 @@ class Embed:
             total_assists += participant.assists
             total_gold += participant.gold
 
-            name = participant.name
+            name = participant.riot_game_name
             truncated_name = name[:12] + "..." if len(name) > 15 else name
             champion_emoji = participant.champion.get_emoji
             champion_level = f"`{participant.level}`" if participant.level > 9 else f"\u200b `{participant.level}` \u200b "
             kda = f"{participant.kills} / {participant.deaths} / {participant.assists}"
             items_emoji = " ".join(item.get_emoji for item in participant.items)
             main_rune_emoji = participant.runes[0].get_emoji
-            gold = participant.gold
+            dmg = f"`{participant.damage_dealt:,} DMG`" if participant.damage_dealt > 10000 else f"` {participant.damage_dealt:,} DMG`"
 
             kda_blank = " "
             if participant.kills < 10:
@@ -362,10 +369,11 @@ class Embed:
                 kda_blank += "\u200b \u200b "
             if participant.assists < 10:
                 kda_blank += "\u200b \u200b "
+            kda_blank = kda_blank[:int(len(kda_blank)/2)] + f"`{kda}`" + kda_blank[int(len(kda_blank)/2):]
 
             field_1_value += f"{main_rune_emoji} {champion_emoji} {champion_level} `{truncated_name}`\n"
             field_2_value += f"{items_emoji}\n"
-            field_3_value += f"`{kda}`{kda_blank}`{gold} GOLD`\n"
+            field_3_value += f"{kda_blank}{dmg}\n"
 
         embed.add_field(
             name=f"{Match.team1 if team_id == 100 else Match.team2}{blank * 2}{total_kills} / {total_deaths} / {total_assists}",
@@ -396,8 +404,7 @@ class Embed:
         embed = discord.Embed(
             description=(
                 f"### RECENT GAMES (LAST 5 PLAYED)\n"
-                f"``` ```"
-                #f"```ansi\n{Color.ansi_gray}—————————————————————————————————————————————————————————————```"
+                f"```ansi\n{Color.ansi_gray}—————————————————————————————————————————————————————————————```"
             ),
             color=Color.default,
         )
@@ -414,13 +421,14 @@ class Embed:
         queue = info.queue
 
         player = next((p for p in info.participants if p.puuid == puuid), info.participants[0])
+        win = "REMAKE" if player.remake else (Match.victory if player.win else Match.defeat)
 
         embed = discord.Embed(
             description=(
-                f"# {queue.emoji_victory if player.win else queue.emoji_defeat} \u200b {Match.victory if player.win else Match.defeat}\n"
+                f"# {queue.emoji_victory if player.win else queue.emoji_defeat} \u200b {win}\n"
                 f"**{queue.map} \u200b • \u200b {queue.description} \u200b • \u200b "
                 f"{info.duration} \u200b • \u200b <t:{info.end_timestamp}:d> \u200b • \u200b "
-                f"||[{match.id.split('_')[1]}]({blitz_match(player.name, match.region, match.id)})||**\n"
+                f"||[{match.id.split('_')[1]}]({blitz_match(player.riot_game_name, player.riot_tag_line, match.region, match.id)})||**\n"
                 f"```ansi\n{Color.ansi_gray}—————————————————————————————————————————————————————————————```"
             ),
             color=Color.victory if player.win else Color.defeat,

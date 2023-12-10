@@ -49,7 +49,7 @@ class ProfileView(View):
             player = next((p for p in match.info.participants if p.puuid == puuid), match.info.participants[0])
             position = f"{player.position} \u200b • \u200b " if len(str(player.position)) > 0 else ""
             labed = (
-                f"{'VICTORY' if player.win else 'DEFEAT'}"
+                f"{'REMAKE' if player.remake else ('VICTORY' if player.win else 'DEFEAT')}"
                 f" \u200b | \u200b "
                 f"{player.kills} / {player.deaths} / {player.assists}"
             )
