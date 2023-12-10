@@ -17,10 +17,10 @@ This Bot is inspired by a previous project developed by [@mlouison](https://gith
 | Command                                   | function                           |
 |-------------------------------------------|------------------------------------|
 | `/profile` +name                          | View selected summoner profile     |
-| `/set-region` +region                     | Set the server's region            |
-| `/setting`                                | View setting                       |
-| `/add-player` +name +region               | Add player                         |
-| `/delete-player` +name                    | Delete player                      |
+| `/set-region` +region                     | Set the default region             |
+| `/add-player` +name +region               | Add player to the update list      |
+| `/remove-player` +name                    | Remove player from the update list |
+| `/player-list`                            | View updated list of players       |
 | `/help`                                   | List of commands                   |
 
 ### Example

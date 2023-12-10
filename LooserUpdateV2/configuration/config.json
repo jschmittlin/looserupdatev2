@@ -1,0 +1,53 @@
+{
+    "globals": {
+        "default_region": "EUW"
+    },
+
+    "riotgames": {
+        "RiotAPI": {
+            "api_key": "RIOT_API_KEY"
+        }
+    },
+
+    "discord": {
+        "Token": "DISCORD_API_TOKEN",
+        "Prefix": "!",
+        "Owner_ID": "OWNER_ID",
+        "Guild_ID": "GUILD_ID",
+        "Channel_ID": "CHANNEL_ID",
+        "Activities": [
+            {
+                "name": "you",
+                "type": "watching"
+            },
+            {
+                "name": "botlane feed",
+                "type": "watching"
+            },
+            {
+                "name": "Medhi crying",
+                "type": "listening"
+            },
+            {
+                "name": "La deprime",
+                "type": "listening"
+            },
+            {
+                "name": "for /help",
+                "type": "playing"
+            },
+            {
+                "name": "at tracking down losers",
+                "type": "playing"
+            },
+            {
+                "name": "Doom Bots",
+                "type": "playing"
+            },
+            {
+                "name": "KCorp LEC",
+                "type": "competing"
+            }
+        ]
+    }
+}

@@ -1,118 +1,177 @@
-import urllib.parse
-import time
+from typing import MutableMapping, Mapping, Optional, Any
+import requests
+import logging
+import os
 
-from .resources import Emoji
+from .. import configuration
+from ..data import Region, Platform
+from ..datastores.riotapi import RiotAPI
 
-def log(message, level="INFO"):
-    """
-    Log a message to the console with a given level.
+import json
 
-    Parameters:
-        message (str): The message to log.
-        level (str): The level of the log (default is "INFO").
 
-    Returns:
-        None
-    """
-    current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
-    print("[{}] [{:<8}] LooserUpdateV2: {}".format(current_time, level, message))
+LOGGER = logging.getLogger("looserupdatev2.core")
+RIOT = RiotAPI(configuration.settings.riot_api_key)
 
-def replace_spaces(string: str):
-    """
-    Replaces spaces in a string with underscores.
+ddragon = {"version": "", "cache": {}}
 
-    Args:
-        string: A string that may contain spaces.
-
-    Returns:
-        A new string with all spaces replaced by underscores.
-    """
-    return string.replace(' ', '%20')
-
-def percent(wins: int, losses: int) -> int:
-    """
-    Calculate the percentage of wins from total games played.
-
-    Args:
-        wins (int): The number of games won.
-        losses (int): The number of games lost.
-
-    Returns:
-        int: The percentage of games won as an integer, rounded to the nearest whole number.
-
-    """
-    if wins is None or losses is None:
-        return None
-    return round((wins / (wins + losses)) * 100)
-
-def spacing(tier: str, wins: int, losses: int) -> str:
-    """
-    Calculate the spacing between the rank and the winrate.
-
-    Args:
-        tier (str): The player's tier.
-        wins (int): The number of wins.
-        losses (int): The number of losses.
-
-    Returns:
-        str: A string representing the spacing between the rank and the winrate.
-
-    """
-    spaces = ""
-    
-    if tier == 'IRON' or tier == 'GOLD':
-        spaces = f'{Emoji.blank}{Emoji.blank}{Emoji.blank} \u200b \u200b '
-    elif tier == 'BRONZE' or tier == 'SILVER' or tier == 'MASTER':
-        spaces = f'{Emoji.blank}{Emoji.blank}{Emoji.blank}'
-    elif tier == 'PLATINUM' or tier == 'DIAMOND':
-        spaces = f'{Emoji.blank} \u200b \u200b \u200b '
-    elif tier == 'GRANDMASTER' or tier == 'CHALLENGER':
-        return f'{Emoji.blank}'
-    
-    if wins > 99:
-        spaces += ' \u200b '
-    if losses > 99:
-        spaces += ' \u200b '
-        
-    return spaces
-
-def opgg(user: str, region: str) -> str:
-    """
-    Create the op.gg URL for a given user and region.
-
-    Args:
-        user (str): The username to search for on op.gg
-        region (str): The region where the user's account is located
-
-    Returns:
-        str: The URL of the user's op.gg profile, or a default URL if user or region is missing.
-
-    """
-    default_url = "https://www.op.gg/"
-    
-    if not user or not region:
-        return default_url
-    
+def get_latest_version() -> str:
     try:
-        encoded_user = urllib.parse.quote(user)
-        opgg_url = f"https://www.op.gg/summoner/{region}/{encoded_user}"
-    except:
-        opgg_url = default_url
-        
-    return opgg_url
+        latest_version = requests.get("http://ddragon.leagueoflegends.com/api/versions.json").json()[0]
+        LOGGER.info(f"Latest version from Data Dragon API: {latest_version}")
+    except requests.exceptions.RequestException as error:
+        latest_version = ""
+        LOGGER.error(f"Unable to retrieve the latest version from Data Dragon API: {error}")
 
-def str_digit_add(message: str) -> str:
-    """Add 1 to the first number in a string.
+    return latest_version
+
+def get_data_dragon(file: str) -> Mapping[str, Any]:
+    url = "http://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/{file}".format(
+        version=ddragon["version"], file=file,
+    )
+
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        ddragon["cache"][file] = response.json()
+        LOGGER.info(f"Data Dragon cache updated for {file}")
+    except requests.exceptions.RequestException as error:
+        LOGGER.error(f"Unable to update Data Dragon cache for {file}: {error}")
+
+    return ddragon["cache"][file]
+
+class CoreData(object):
+    @property
+    def _renamed(cls) -> Mapping[str, str]:
+        pass
+
+    def __init__(self, **kwargs):
+        self(**kwargs)
+
+    def __call__(self, **kwargs):
+        for key, value in kwargs.items():
+            new_key = self._renamed.get(key, key)
+            setattr(self, new_key, value)
+        return self
+
+class LolObject(object):
+    _renamed = {}
     
-    Args:
-    message (str): A string that contains a number at the beginning
+    def __init__(self, **kwargs):
+        self._data = {_type: None for _type in self._data_types}
+        results = {_type: {} for _type in self._data_types}
+
+        for _type in self._data_types:
+            if issubclass(_type, CoreData):
+                if hasattr(_type, "_api"):
+                    results[_type] = self.request_api(_type._api, _type._dto_type, kwargs)
+                elif hasattr(_type, "_file"):
+                    results[_type] = self.from_json(_type._file)
+                else:
+                    results[_type] = kwargs
+                
+
+        for _type, insert_this in results.items():
+            if self._data[_type] is not None:
+                self._data[_type] = self._data[_type](**insert_this)
+            else:
+                self._data[_type] = _type(**insert_this)
+
+    def __str__(self) -> str:
+        result = {}
+        for _type, data in self._data.items():
+            result[str(_type)] = str(data)
+        return str(result)
+
+    def request_api(
+        self, api_name: str = None, dto: Mapping[str, Any] = None, query: MutableMapping[str, Any] = None,
+    ) -> Mapping[str, Any]:
+        from ..dto.championmastery import ChampionMasteryListDto
+        from ..dto.match import MatchListDto
+        
+        if api_name is None:
+            return query
+        
+        query["platform"] = Platform.from_region(query["region"])
+        if query["platform"] is None:
+            raise ValueError(f"Platform for {query['region']} not found")
+
+        api = RIOT.services.get(api_name)
+
+        if not api:
+            raise ValueError(f"API for {api_name} not found")
+
+        api_methods = {
+            "SummonerAPI": lambda kwargs: api.get_summoner(kwargs),
+            "LeagueAPI": lambda kwargs: api.get_league_entries_by_summoner(kwargs),
+            "ChampionMasteryAPI": lambda kwargs: (
+                api.get_champion_mastery_list(kwargs) if issubclass(ChampionMasteryListDto, dto) else api.get_champion_mastery_score(kwargs)
+            ),
+            "ChallengesAPI": lambda kwargs: api.get_player_data(kwargs),
+            "MatchAPI": lambda kwargs: (
+                api.get_match_list(kwargs) if issubclass(MatchListDto, dto) else api.get_match(kwargs)
+            ),
+        }
+
+        api_method = api_methods.get(api_name, None)
+
+        if api_method:
+            try:
+                response = api_method(query)
+            except Exception as error:
+                raise Exception(error)
+        else:
+            raise ValueError(f"Method for {api_name} not defined")
+
+        response = self._clear(response, dto._dict)
+        response["region"] = query["region"]
+
+        return response
+
+    def _clear(
+        self, data: MutableMapping[str, Any] = None, dto: Mapping[str, Any] = None,
+    ) -> Mapping[str, Any]:
+        if data is None:
+            return {}
+
+        if not isinstance(data, (dict, list)):
+            if not isinstance(dto, (dict, list)):
+                return data if isinstance(data, dto) else None
+            elif isinstance(dto, dict):
+                return {key: data for key, value_type in dto.items() if isinstance(data, value_type)}
+
+        if isinstance(data, dict):
+            return {
+                key: (
+                    self._clear(data.get(key), value_type) if isinstance(value_type, dict)
+                    else [self._clear(item, value_type[0]) for item in data[key]] if isinstance(value_type, list) and key in data and isinstance(value_type[0], dict)
+                    else [item for item in data[key] if isinstance(item, value_type[0])] if isinstance(value_type, list) and key in data
+                    else data[key] if key in data and isinstance(data[key], value_type)
+                    else None
+                )
+                for key, value_type in dto.items()
+            }
+        elif isinstance(data, list):
+            return {key: [self._clear(item, value_type[0]) for item in data] for key, value_type in dto.items()}
+
+        return {}
+
+    def to_json(
+        self, file: Optional[str] = None, data: Mapping[str, Any] = None,
+    ) -> None:
+        assert data
+        if file is None:
+            for _type in self._data_types: file = _type._file
+        file_name = os.path.join(os.path.dirname(__file__), "../datastores/data", file)
+        with open(file_name, "w") as json_file:
+            json.dump(data, json_file)
     
-    Returns:
-    str: A string with the number at the beginning incremented by 1
-    """
-    ranking = message.split("/")[0]
-    
-    if ranking.isdigit() and int(ranking) < 10:
-        return message.replace(ranking, str(int(ranking) + 1))
-    
-    return message
+    def from_json(
+        self, file: Optional[str] = None,
+    ) -> Mapping[str, Any]:
+        if file is None:
+            for _type in self._data_types: file = _type._file
+        file_name = os.path.join(os.path.dirname(__file__), "../datastores/data", file)
+        with open(file_name, "r") as json_file:
+            data = json.load(json_file)
+            return data

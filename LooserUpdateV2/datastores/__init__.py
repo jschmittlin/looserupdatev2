@@ -1,0 +1,1 @@
+from .riotapi import RiotAPI

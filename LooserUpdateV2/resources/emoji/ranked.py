@@ -1,0 +1,12 @@
+class Ranked:
+    challenger="<:challenger:1179406642866045038>"
+    grandmaster="<:grandmaster:1179406649916670003>"
+    master="<:master:1179406653368573982>"
+    diamond="<:diamond:1179406644296286298>"
+    emerald="<:emerald:1179406646145986600>"
+    platinum="<:platinum:1179406654496845935>"
+    gold="<:gold:1179406648465432676>"
+    silver="<:silver:1179406656715636746>"
+    bronze="<:bronze:1179406639925837905>"
+    iron="<:iron:1179406652148023346>"
+    unranked="<:unranked:1179406658074595509>"
