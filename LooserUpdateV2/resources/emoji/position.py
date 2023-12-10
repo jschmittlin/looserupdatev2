@@ -1,0 +1,16 @@
+class Position:
+    top="<:iconpositiontopdisabled:1179160105447600219>"
+    jungle="<:iconpositionjungledisabled:1179160101769195631>"
+    mid="<:iconpositionmiddledisabled:1179160103044263976>"
+    bottom="<:iconpositionbottomdisabled:1179160098313076816>"
+    utility="<:iconpositionutilitydisabled:1179160108282957875>"
+    fill="<:iconpositionfilldisabled:1179160100452184124>"
+    unselected="<:iconpositionunselecteddisabled:1179160107054006352>"
+
+    top_hover="<:iconpositiontophover:1179160176872402944>"
+    jungle_hover="<:iconpositionjunglehover:1179160173386932274>"
+    mid_hover="<:iconpositionmidhover:1179160174821396603>"
+    bottom_hover="<:iconpositionbottomhover:1179160169968582677>"
+    utility_hover="<:iconpositionutilityhover:1179160179388989450>"
+    fill_hover="<:iconpositionfillhover:1179160171264614561>"
+    unselected_hover="<:iconpositionunselectedhover:1179160178227150950>"
