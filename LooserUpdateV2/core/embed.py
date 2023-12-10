@@ -9,6 +9,7 @@ from ..data import Region, Queue, Tier, Lane
 from ..resources import Icon, Color 
 from ..resources.emoji import blank, Mastery, Match
 
+<<<<<<< HEAD
 def blitz_profile(name: str, region: Region) -> str:
     return f"https://blitz.gg/lol/profile/{str(region.platform).lower()}/{name.replace(' ', '%20')}"
 
@@ -24,6 +25,18 @@ def get_winrate(wins: int, losses: int) -> Union[int, str]:
     except ZeroDivisionError:
         return "?"
 
+=======
+# TODO: change for blitz.gg link and add link for match
+def opgg(name: str, region: str) -> str:
+    return f"https://www.op.gg/summoners/{region.lower()}/{name.replace(' ', '%20')}"
+
+def get_winrate(wins: int, losses: int) -> Union[int, str]:
+    try:
+        return round(wins / (wins + losses) * 100)
+    except ZeroDivisionError:
+        return "?"
+
+>>>>>>> 25a9e4fa0b958afc5ed854487e87788d88997480
 def get_kda(kills: int, deaths: int, assists: int) -> Union[int, str]:
     try:
         return round((kills + assists) / deaths, 2)
@@ -173,7 +186,11 @@ class Embed:
         ).set_author(
             name=f"{player.name} \u200b #{player.region.value}",
             icon_url=player.profile_icon.url,
+<<<<<<< HEAD
             url=blitz_profile(player.name, player.region),
+=======
+            url=opgg(player.name, player.region.value),
+>>>>>>> 25a9e4fa0b958afc5ed854487e87788d88997480
         )
         Embed.match_mini(embed=embed, puuid=player.puuid, match=match)
         
@@ -213,7 +230,11 @@ class Embed:
         ).set_author(
             name=f"{summoner.name} \u200b #{summoner.region.value}",
             icon_url=summoner.profile_icon.url,
+<<<<<<< HEAD
             url=blitz_profile(summoner.name, summoner.region),
+=======
+            url=opgg(summoner.name, summoner.region.value),
+>>>>>>> 25a9e4fa0b958afc5ed854487e87788d88997480
         ).set_thumbnail(
             url=summoner.profile_icon.url,
         ).set_footer(
@@ -238,6 +259,7 @@ class Embed:
             )
         try:
             flex = league.flex
+<<<<<<< HEAD
             embed.add_field(
                 name="**FLEX 5V5**",
                 value=(
@@ -253,6 +275,23 @@ class Embed:
                 value=f"{Tier.unranked.emoji} `{Tier.unranked}`\n{blank * 10}",
                 inline=True,
             )
+=======
+            embed.add_field(
+                name="**FLEX 5V5**",
+                value=(
+                    f"{flex.tier.emoji} `{flex.tier} {flex.division.value}`{blank * 3}{flex.league_points} LP\n"
+                    f"{get_winrate(flex.wins, flex.losses)}% Win Rate{blank * 3}{flex.wins}W {flex.losses}L\n"
+                    f"{blank * 10}"
+                ),
+                inline=True,
+            )
+        except ValueError:
+            embed.add_field(
+                name="**FLEX 5V5**",
+                value=f"{Tier.unranked.emoji} `{Tier.unranked}`\n{blank * 10}",
+                inline=True,
+            )
+>>>>>>> 25a9e4fa0b958afc5ed854487e87788d88997480
         masteries_fields = []
         for mastery in champion_masteries.champion_mastery_list:
             length_caracter = 15 - len(mastery.champion.name)
@@ -270,9 +309,15 @@ class Embed:
     def match_mini(embed: discord.Embed, puuid: str, match: Match) -> None:
         info = match.info
         queue = info.queue
+<<<<<<< HEAD
 
         player = next((p for p in info.participants if p.puuid == puuid), info.participants[0])
 
+=======
+
+        player = next((p for p in info.participants if p.puuid == puuid), info.participants[0])
+
+>>>>>>> 25a9e4fa0b958afc5ed854487e87788d88997480
         map_emoji = queue.emoji_victory if player.win else queue.emoji_defeat
         items_emoji = " ".join(item.get_emoji for item in player.items)
         position_emoji = f"{player.position.emoji_hover} {player.position}"
@@ -419,8 +464,12 @@ class Embed:
             description=(
                 f"# {queue.emoji_victory if player.win else queue.emoji_defeat} \u200b {Match.victory if player.win else Match.defeat}\n"
                 f"**{queue.map} \u200b • \u200b {queue.description} \u200b • \u200b "
+<<<<<<< HEAD
                 f"{info.duration} \u200b • \u200b <t:{info.end_timestamp}:d> \u200b • \u200b "
                 f"||[{match.id.split('_')[1]}]({blitz_match(player.name, match.region, match.id)})||**\n"
+=======
+                f"{info.duration} \u200b • \u200b <t:{info.end_timestamp}:d> \u200b • \u200b ||{match.id.split('_')[1]}||**\n"
+>>>>>>> 25a9e4fa0b958afc5ed854487e87788d88997480
                 f"```ansi\n{Color.ansi_gray}—————————————————————————————————————————————————————————————```"
             ),
             color=Color.victory if player.win else Color.defeat,
