@@ -40,6 +40,20 @@ def get_data_dragon(file: str) -> Mapping[str, Any]:
 
     return ddragon["cache"][file]
 
+# only use for arena augment
+def get_data_cdragon(file: str) -> Mapping[str, Any]:
+    url = "https://raw.communitydragon.org/latest/cdragon/arena/en_us.json"
+
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        ddragon["cache"][file] = response.json()
+        LOGGER.info(f"Data Dragon cache updated for {file}")
+    except requests.exceptions.RequestException as error:
+        LOGGER.error(f"Unable to update Data Dragon cache for {file}: {error}")
+
+    return ddragon["cache"][file]
+
 class CoreData(object):
     @property
     def _renamed(cls) -> Mapping[str, str]:

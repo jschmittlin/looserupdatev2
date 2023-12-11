@@ -37,8 +37,6 @@ class SummonerSpellEmoji(EmojiObject):
 
 class SummonerSpell(LolObject):
     _data_types = {SummonerSpellData, SummonerSpellEmoji}
-    _version = None
-    _data_dragon = None
 
     def __init__(
         self,

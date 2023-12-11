@@ -9,6 +9,7 @@ from .summoner import Summoner
 from .player import Player
 from .match import MatchHistory
 
+from ..data import Queue
 from ..resources import Icon, Color
 from ..resources.emoji import blank
 
@@ -48,8 +49,19 @@ class ProfileView(View):
         for match in history:
             player = next((p for p in match.info.participants if p.puuid == puuid), match.info.participants[0])
             position = f"{player.position} \u200b • \u200b " if len(str(player.position)) > 0 else ""
+            if match.info.queue == Queue.cherry:
+                if player.subteam_placement == 1:
+                    win_text = f"{player.subteam_placement}ST"
+                elif player.subteam_placement == 2:
+                    win_text = f"{player.subteam_placement}ND"
+                elif player.subteam_placement == 3:
+                    win_text = f"{player.subteam_placement}RD"
+                elif player.subteam_placement == 4:
+                    win_text = f"{player.subteam_placement}TH"
+            else:
+                win_text = "REMAKE" if player.remake else ("VICTORY" if player.win else "DEFEAT")
             labed = (
-                f"{'REMAKE' if player.remake else ('VICTORY' if player.win else 'DEFEAT')}"
+                f"{win_text}"
                 f" \u200b | \u200b "
                 f"{player.kills} / {player.deaths} / {player.assists}"
             )

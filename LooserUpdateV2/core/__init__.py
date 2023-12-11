@@ -2,9 +2,11 @@ from .staticdata import (
     ChallengeTitle,
     Champion,
     Item,
+    Items,
     ProfileIcon,
     Rune,
     SummonerSpell,
+    Augment,
 )
 from .challenges import PlayerInfo
 from .championmastery import ChampionMasteries

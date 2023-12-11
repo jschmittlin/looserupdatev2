@@ -37,8 +37,6 @@ class RuneEmoji(EmojiObject):
 
 class Rune(LolObject):
     _data_types = {RuneData, RuneEmoji}
-    _version = None
-    _data_dragon = None
 
     def __init__(
         self,
@@ -110,7 +108,4 @@ class Rune(LolObject):
 
     @property
     def get_emoji(self) -> str:
-        try:
-            return self._data[RuneEmoji].get_emoji(self._data[RuneData].id)
-        except AttributeError:
-            return self._data[RuneEmoji].get_emoji(0)
+        return self._data[RuneEmoji].get_emoji(self._data[RuneData].id)

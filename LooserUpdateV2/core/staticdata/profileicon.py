@@ -23,7 +23,6 @@ class ProfileIconData(CoreData):
 
 class ProfileIcon(LolObject):
     _data_types = {ProfileIconData}
-    _version = None
 
     def __init__(
         self,

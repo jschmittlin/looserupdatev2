@@ -4,10 +4,14 @@ import itertools
 
 from .common import CoreData, LolObject
 from .summoner import Summoner
-from .staticdata import Champion
-from .staticdata import Item, Items
-from .staticdata import Rune
-from .staticdata import SummonerSpell
+from .staticdata import (
+    Champion,
+    Item,
+    Items,
+    Rune,
+    SummonerSpell,
+    Augment,
+)
 from ..data import (
     Region,
     Platform,
@@ -363,11 +367,11 @@ class Participant(LolObject):
 
     @property
     def runes(self) -> List[Rune]:
-        return [Rune(id=rune_id) for rune_id in self._data[ParticipantData].perks]
+        return [Rune(id=id) for id in self._data[ParticipantData].perks]
 
     @property
     def augments(self) -> List[int]:
-        return [augment for augment in self._data[ParticipantData].augments]
+        return [Augment(id=id) for id in self._data[ParticipantData].augments]
 
     @property
     def subteam_id(self) -> int:

@@ -10,6 +10,9 @@ from ..resources import Icon, Color
 from ..resources.emoji import blank, Mastery, Match
 
 
+space = " \u200b "
+split = " \u200b • \u200b "
+
 def blitz_profile(name: str, region: Region) -> str:
     return "https://blitz.gg/lol/profile/{region}/{name}".format(
         region=str(region.platform).lower(), name=name.replace(' ', '%20'),
@@ -43,6 +46,34 @@ def get_kp(kills: int, assists: int, team_kills: int) -> Union[int, str]:
     except ZeroDivisionError:
         return "?"
 
+def spacing_lane(position: Lane) -> str:
+    if position == Lane.top:
+        return blank
+    if position == Lane.jungle:
+        return space
+    if position == Lane.middle:
+        return blank + space * 1
+    if position == Lane.bottom:
+        return blank
+    if position == Lane.utility:
+        return ""
+    if position == Lane.fill:
+        return blank
+    if position == Lane.unselected:
+        return blank
+
+def spacing_queue(queue: Queue) -> str:
+    if queue == Queue.normal_draft_five:
+        return ""
+    if queue == Queue.ranked_solo_five:
+        return ""
+    if queue == Queue.ranked_flex_five:
+        return space * 4
+    if queue == Queue.aram:
+        return blank * 5 + space
+    if queue == Queue.cherry:
+        return blank * 5 + space
+
 
 class Embed:
     @staticmethod
@@ -69,16 +100,17 @@ class Embed:
         ).set_thumbnail(
             url=Icon.random_poro(happy=True),
         )
-        for c in commands:
+        for command in commands:
             embed.add_field(
-                name=f"/{c.name}", value=f"```{c.description}```", inline=False,
+                name=f"/{command.name}",
+                value=f"```{command.description}```",
+                inline=False,
             )
         return embed
 
     @staticmethod
     def region_edit(region: Union[Region, str]) -> discord.Embed:
-        if not isinstance(region, Region):
-            region = Region(region)
+        if not isinstance(region, Region): region = Region(region)
         return discord.Embed(
             description=(
                 f"{Color.discord_preset_region(region=region)}\n"
@@ -140,6 +172,7 @@ class Embed:
         ).set_author(
             name="UPDATE PLAYER LIST", icon_url=Icon.ux_menu,
         )
+
         players_value = ''.join([
             f"```ansi\n"
             f"{Color.ansi_white}{Color.ansi_bold}{player.name} {Color.ansi_gray}#{player.region.value}\n"
@@ -147,43 +180,51 @@ class Embed:
             f"```"
             for player in players
         ]) or "``` ```"
+
         embed.add_field(
-            name=f"**PLAYER MANAGE (MAX PLAYER {players._max_size})**{blank * 6}", value=players_value, inline=False,
+            name=f"**PLAYER MANAGE (MAX PLAYER {players._max_size})**{blank * 6}",
+            value=players_value,
+            inline=False,
         )
+
         return embed
 
     @staticmethod
     def player_update(player: Player) -> discord.Embed:
-        match = player.match
-        info = match.info
-        match_player = next((p for p in info.participants if p.puuid == player.puuid), info.participants[0])
-        space_max = 61
-        rank_color = player.tier.color if player.tier else Tier.unranked.color
-        win_color = Color.ansi_blue if match_player.win else Color.ansi_red
-        rank = f"{player.tier} {player.division.value}" if player.tier else f"{Tier.unranked}"
-        lp = f"{player.league_points} LP"
+        match_player = next((p for p in player.match.info.participants if p.puuid == player.puuid), player.match.info.participants[0])
+
+        player_rank = f"{player.tier} {player.division.value}" if player.tier else f"{Tier.unranked}"
+        player_rank_color = player.tier.color if player.tier else Tier.unranked.color
+
+        result_color = Color.ansi_blue if match_player.win else Color.ansi_red
+        league_points = f"{player.league_points} LP"
+
         winrate = f"{get_winrate(player.wins, player.losses)}% Win Rate"
         win_loss = f"{player.wins}W - {player.losses}L"
-        split = " • "
-        nb_space_1 = space_max - (len(rank) + len(lp) + len(player.description) + len(split))
-        nb_space_2 = space_max - (len(win_loss) + len(winrate))
+
+        rank_padding = 61 - (len(player_rank) + len(league_points) + len(player.description) + 3)
+        win_padding = 61 - (len(win_loss_text) + len(winrate_text))
+
+        embed_description = (
+            f"```ansi\n"
+            f"{player_rank_color}{player_rank}{' ' * rank_padding}{result_color}"
+            f"{player.description}{Color.ansi_gray} • {Color.ansi_reset}{league_points}"
+            f"\n{Color.ansi_gray}"
+            f"{winrate}{' ' * win_padding}{win_loss}"
+            f"```{blank}"
+        )
+
         embed = discord.Embed(
-            description=(
-                f"```ansi\n"
-                f"{rank_color}{rank}{' ' * nb_space_1}{win_color}{player.description}{Color.ansi_gray}{split}{Color.ansi_reset}{lp}"
-                f"\n{Color.ansi_gray}"
-                f"{winrate}{' ' * nb_space_2}{win_loss}"
-                f"```"
-                f"{blank}"
-            ),
+            description=embed_description,
             color=Color.victory if match_player.win else Color.defeat,
         ).set_author(
-            name=f"{player.name} \u200b #{player.region.value}",
+            name=f"{player.name}{space}#{player.region.value}",
             icon_url=player.profile_icon.url,
             url=blitz_profile(player.name, player.region),
         )
-        Embed.match_mini(embed=embed, puuid=player.puuid, match=match)
-        
+
+        Embed.match_mini(embed=embed, puuid=player.puuid, match=player.match)
+
         return embed
 
     @staticmethod
@@ -218,7 +259,7 @@ class Embed:
             ),
             color=Color.default,
         ).set_author(
-            name=f"{summoner.name} \u200b #{summoner.region.value}",
+            name=f"{summoner.name}{space}#{summoner.region.value}",
             icon_url=summoner.profile_icon.url,
             url=blitz_profile(summoner.name, summoner.region),
         ).set_thumbnail(
@@ -226,6 +267,7 @@ class Embed:
         ).set_footer(
             text=summoner.region, icon_url=summoner.region.icon,
         )
+
         try:
             solo = league.solo
             embed.add_field(
@@ -243,6 +285,7 @@ class Embed:
                 value=f"{Tier.unranked.emoji} `{Tier.unranked}`\n{blank * 10}",
                 inline=True,
             )
+
         try:
             flex = league.flex
             embed.add_field(
@@ -260,54 +303,34 @@ class Embed:
                 value=f"{Tier.unranked.emoji} `{Tier.unranked}`\n{blank * 10}",
                 inline=True,
             )
+
         masteries_fields = []
         for mastery in champion_masteries.champion_mastery_list:
             length_caracter = 15 - len(mastery.champion.name)
-            space = " \u200b  \u200b " * length_caracter
-            s = f"{mastery.champion.get_emoji} `{mastery.champion.name}`{space}{Mastery.mastery} {mastery.points:,} pts"
+            spacing = f"{space * 2}" * length_caracter
+            s = f"{mastery.champion.get_emoji} `{mastery.champion.name}`{spacing}{Mastery.mastery} {mastery.points:,} pts"
             masteries_fields.append(s)
+
         embed.add_field(
             name="**HIGHEST CHAMPION MASTERY**",
             value="\n".join(masteries_fields) + blank,
             inline=False,
         )
+
         return embed
 
     @staticmethod
-    def match_mini(embed: discord.Embed, puuid: str, match: Match) -> None:
-        info = match.info
+    def mini_classic_aram(embed: discord.Embed, info: "Info", player: "Participant") -> None:
         queue = info.queue
-
-        player = next((p for p in info.participants if p.puuid == puuid), info.participants[0])
-
         win = "REMAKE" if player.remake else (Match.victory if player.win else Match.defeat)
         map_emoji = queue.emoji_victory if player.win else queue.emoji_defeat
         items_emoji = " ".join(item.get_emoji for item in player.items)
         position_emoji = f"{player.position.emoji_hover} {player.position}"
+
+        field_2_blank = spacing_lane(player.position) + spacing_queue(queue)
         
-        field_2_blank = ""
-        if player.position == Lane.top:
-            field_2_blank = blank * 1
-        if player.position == Lane.jungle:
-            field_2_blank = " \u200b "
-        if player.position == Lane.middle:
-            field_2_blank = blank * 1 + " \u200b \u200b \u200b"
-        if player.position == Lane.bottom:
-            field_2_blank = blank * 1
-        if player.position == Lane.utility:
-            field_2_blank = ""
-        if player.position == Lane.unselected:
-            field_2_blank = blank * 1
-
-        if queue == Queue.aram or queue == Queue.cherry:
-            field_2_blank = blank * 5 + " \u200b "
-        if queue == Queue.normal_draft_five or queue == Queue.ranked_solo_five:
-            field_2_blank = ""
-        if queue == Queue.ranked_flex_five:
-            field_2_blank += " \u200b \u200b \u200b \u200b"
-
         embed.add_field(
-            name=f"**{map_emoji} \u200b \u200b {win}**{blank}",
+            name=f"**{map_emoji}{space * 2}{win}**",
             value=(
                 f"{player.champion.get_emoji}"
                 f"{blank}"
@@ -317,31 +340,118 @@ class Embed:
             inline=True,
         )
         embed.add_field(
-            name=f"**{field_2_blank}{position_emoji} \u200b • \u200b {queue.description}**",
+            name=f"**{field_2_blank}{position_emoji}{split}{queue.description}**",
             value=(
                 f"{player.runes[0].get_emoji}"
                 f"{blank}{items_emoji}\n"
                 f"{Match.sword} **{player.damage_dealt:,}**"
-                " \u200b \u200b \u200b "
+                f"{space * 3}"
                 f"{Match.shield} **{player.damage_taken:,}**"
-                " \u200b \u200b \u200b "
+                f"{space * 3}"
                 f"{Match.cc} **{player.crowd_control:,}**"
             ),
             inline=True,
         )
         embed.add_field(
-            name=f"**• \u200b {queue.map}**",
+            name=f"**•{space}{queue.map}**",
             value=(
-                f"**{info.duration} \u200b • \u200b <t:{info.end_timestamp}:R>**\n"
+                f"**{info.duration}{split}"
+                f"<t:{info.end_timestamp}:R>**\n"
                 f"{Match.minions} **{player.creep_score:,}**"
-                f"{blank}"
-                f"{Match.gold} **{player.gold:,}**"
+                f"{blank}{Match.gold} **{player.gold:,}**"
             ),
             inline=True,
         )
 
     @staticmethod
-    def match_team(embed: discord.Embed, team_id: int, team: "Team", participants: List["Participant"]) -> None:
+    def mini_cherry(embed: discord.Embed, info: "Info", player: "Participant") -> None:
+        queue = info.queue
+
+        if player.subteam_id == 1:
+            team_name = f"{Match.poro} PORO"
+        elif player.subteam_id == 2:
+            team_name = f"{Match.minion} MINION"
+        elif player.subteam_id == 3:
+            team_name = f"{Match.scuttle} SCUTTLE"
+        elif player.subteam_id == 4:
+            team_name = f"{Match.krug} KRUG"
+
+        if player.subteam_placement == 1:
+            team_position = f"{player.subteam_placement}ST"
+        elif player.subteam_placement == 2:
+            team_position = f"{player.subteam_placement}ND"
+        elif player.subteam_placement == 3:
+            team_position = f"{player.subteam_placement}RD"
+        elif player.subteam_placement == 4:
+            team_position = f"{player.subteam_placement}TH"
+        
+        field_2_blank = spacing_lane(Lane.fill) + spacing_queue(queue)
+        items_emoji = " ".join(item.get_emoji for item in player.items)
+        augments_emoji = " ".join(augment.get_emoji for augment in player.augments)
+
+        embed.add_field(
+            name=f"**{team_position}{space}{team_name}**",
+            value=(
+                f"{player.champion.get_emoji}"
+                f"{blank}"
+                f"{player.spell_d.get_emoji} {player.spell_f.get_emoji}\n"
+                f"**{player.kills} / {player.deaths} / {player.assists}**"
+            ),
+            inline=True,
+        )
+        embed.add_field(
+            name=f"**{field_2_blank}{Lane.fill.emoji_hover}{split}{queue.description}**",
+            value=(
+                f"{blank * 2}{items_emoji}\n"
+                f"{Match.sword} **{player.damage_dealt:,}**"
+                f"{space * 3}"
+                f"{Match.shield} **{player.damage_taken:,}**"
+                f"{space * 3}"
+                f"{Match.cc} **{player.crowd_control:,}**"
+            ),
+            inline=True,
+        )
+        embed.add_field(
+            name=f"**•{space}{info.duration}{split}<t:{info.end_timestamp}:R>**",
+            value=(
+                f"{augments_emoji}\n"
+                f"{Match.minions} **{player.creep_score:,}**"
+                f"{blank}{Match.gold} **{player.gold:,}**"
+            ),
+            inline=True,
+        )
+
+    @staticmethod
+    def match_mini(embed: discord.Embed, puuid: str, match: Match) -> None:
+        info = match.info
+        queue = info.queue
+
+        player = next((p for p in info.participants if p.puuid == puuid), info.participants[0])
+
+        if queue == Queue.cherry:
+            Embed.mini_cherry(embed=embed, info=info, player=player)
+        else:
+            Embed.mini_classic_aram(embed=embed, info=info, player=player)
+
+    @staticmethod
+    def profile_match_history(summoner: Summoner) -> discord.Embed:
+        match_history = summoner.match_history
+        embed = discord.Embed(
+            description=(
+                f"### RECENT GAMES (LAST 5 PLAYED)\n"
+                f"```ansi\n{Color.ansi_gray}—————————————————————————————————————————————————————————————```"
+            ),
+            color=Color.default,
+        )
+        Embed.match_mini(embed=embed, puuid=summoner.puuid, match=match_history[0])
+        Embed.match_mini(embed=embed, puuid=summoner.puuid, match=match_history[1])
+        Embed.match_mini(embed=embed, puuid=summoner.puuid, match=match_history[2])
+        Embed.match_mini(embed=embed, puuid=summoner.puuid, match=match_history[3])
+        Embed.match_mini(embed=embed, puuid=summoner.puuid, match=match_history[4])
+        return embed
+
+    @staticmethod
+    def classic_team(embed: discord.Embed, team_id: int, team: "Team", participants: List["Participant"]) -> None:
         objectives = team.objectives
 
         field_1_value = field_2_value = field_3_value = ""
@@ -382,8 +492,9 @@ class Embed:
         )
         embed.add_field(
             name=(
-                f" \u200b {blank} \u200b {Match.baron} {objectives.baron.kills} \u200b "
-                f"{Match.herald} {objectives.rift_herald.kills} \u200b "
+                f"{space}{blank}{space}"
+                f"{Match.baron} {objectives.baron.kills}{space}"
+                f"{Match.herald} {objectives.rift_herald.kills}{space}"
                 f"{Match.dragon} {objectives.dragon.kills}"
             ),
             value=field_2_value,
@@ -391,29 +502,120 @@ class Embed:
         )
         embed.add_field(
             name=(
-                f"{Match.tower}{objectives.tower.kills} \u200b "
-                f"{Match.inhibitor} {objectives.inhibitor.kills}{blank}{Match.gold} {total_gold}"
+                f"{Match.tower} {objectives.tower.kills}{space}"
+                f"{Match.inhibitor} {objectives.inhibitor.kills}{blank}"
+                f"{Match.gold} {total_gold}"
             ),
             value=field_3_value,
             inline=True,
         )
 
     @staticmethod
-    def profile_match_history(summoner: Summoner) -> discord.Embed:
-        match_history = summoner.match_history
-        embed = discord.Embed(
-            description=(
-                f"### RECENT GAMES (LAST 5 PLAYED)\n"
-                f"```ansi\n{Color.ansi_gray}—————————————————————————————————————————————————————————————```"
-            ),
-            color=Color.default,
+    def classic_aram_match(embed: discord.Embed, info: "Info") -> None:
+        team_1_bans = " ".join(ban.champion.get_emoji for ban in info.teams[0].bans)
+        team_2_bans = " ".join(ban.champion.get_emoji for ban in info.teams[1].bans)
+
+        if team_1_bans or team_2_bans:
+            embed.add_field(
+                name="", value=f"{team_1_bans}{blank * 15}{team_1_bans}", inline=False,
+            )
+
+        Embed.classic_team(embed=embed, team_id=100, team=info.teams[0], participants=info.participants[:5])
+        Embed.classic_team(embed=embed, team_id=200, team=info.teams[1], participants=info.participants[5:])
+
+    @staticmethod
+    def cherry_team(embed: discord.Embed, participants: List["Participant"]) -> None:
+        field_1_value = field_2_value = field_3_value = ""
+        total_kills = total_deaths = total_assists = total_gold = 0
+        subteam_id = subteam_placement = 0
+
+        for participant in participants:
+            total_kills += participant.kills
+            total_deaths += participant.deaths
+            total_assists += participant.assists
+            total_gold += participant.gold
+
+            subteam_id = participant.subteam_id
+            subteam_placement = participant.subteam_placement
+
+            champion_emoji = participant.champion.get_emoji
+            spell_d_emoji = participant.spell_d.get_emoji
+            spell_f_emoji = participant.spell_f.get_emoji
+            name = participant.riot_game_name
+            truncated_name = name[:12] + "..." if len(name) > 15 else name
+            items_emoji = " ".join(item.get_emoji for item in participant.items)
+            augments_emoji = "".join(augment.get_emoji for augment in participant.augments)
+            kda = f"{participant.kills} / {participant.deaths} / {participant.assists}"
+            dmg = f"`{participant.damage_dealt:,} DMG`" if participant.damage_dealt > 10000 else f"` {participant.damage_dealt:,} DMG`"
+
+            kda_blank = " "
+            if participant.kills < 10:
+                kda_blank += "\u200b \u200b "
+            if participant.deaths < 10:
+                kda_blank += "\u200b \u200b "
+            if participant.assists < 10:
+                kda_blank += "\u200b \u200b "
+            kda_blank = kda_blank[:int(len(kda_blank)/2)] + f"`{kda}`" + kda_blank[int(len(kda_blank)/2):]
+
+            field_1_value += f"{champion_emoji}{space * 3}{spell_d_emoji} {spell_f_emoji}{space}`{truncated_name}`\n"
+            field_2_value += f"{items_emoji}\n"
+            field_3_value += f"{augments_emoji} {kda_blank}\n"
+
+        if subteam_id == 1:
+            team_name = f"{Match.poro} PORO"
+        elif subteam_id == 2:
+            team_name = f"{Match.minion} MINION"
+        elif subteam_id == 3:
+            team_name = f"{Match.scuttle} SCUTTLE"
+        elif subteam_id == 4:
+            team_name = f"{Match.krug} KRUG"
+
+        if subteam_placement == 1:
+            team_position = f"{subteam_placement}ST"
+        elif subteam_placement == 2:
+            team_position = f"{subteam_placement}ND"
+        elif subteam_placement == 3:
+            team_position = f"{subteam_placement}RD"
+        elif subteam_placement == 4:
+            team_position = f"{subteam_placement}TH"
+
+        embed.add_field(
+            name=f"**{team_position}{space}{team_name}**",
+            value=field_1_value,
+            inline=True,
         )
-        Embed.match_mini(embed=embed, puuid=summoner.puuid, match=match_history[0])
-        Embed.match_mini(embed=embed, puuid=summoner.puuid, match=match_history[1])
-        Embed.match_mini(embed=embed, puuid=summoner.puuid, match=match_history[2])
-        Embed.match_mini(embed=embed, puuid=summoner.puuid, match=match_history[3])
-        Embed.match_mini(embed=embed, puuid=summoner.puuid, match=match_history[4])
-        return embed
+        embed.add_field(
+            name=f"{blank * 2}{space * 3}{total_kills} / {total_deaths} / {total_assists}",
+            value=field_2_value,
+            inline=True,
+        )
+        embed.add_field(
+            name=f"{blank * 5}{Match.gold} {total_gold}",
+            value=field_3_value,
+            inline=True,
+        )
+
+    @staticmethod
+    def cherry_match(embed: discord.Embed, info: "Info") -> None:
+        bans = " ".join(ban.champion.get_emoji for ban in info.teams[0].bans)
+
+        embed.add_field(
+            name="", value=f" {blank * 17} {bans}", inline=False,
+        )
+
+        teams = [
+            (info.participants[0], info.participants[1]),
+            (info.participants[2], info.participants[3]),
+            (info.participants[4], info.participants[5]),
+            (info.participants[6], info.participants[7]),
+        ]
+
+        placements = set(participant.subteam_placement for participant in info.participants)
+
+        pairs = [team for placement in sorted(placements) for team in teams if team[0].subteam_placement == team[1].subteam_placement == placement]
+
+        for pair in pairs:
+            Embed.cherry_team(embed=embed, participants=pair)
 
     @staticmethod
     def profile_match(puuid: str, match: Match) -> discord.Embed:
@@ -421,28 +623,23 @@ class Embed:
         queue = info.queue
 
         player = next((p for p in info.participants if p.puuid == puuid), info.participants[0])
-        win = "REMAKE" if player.remake else (Match.victory if player.win else Match.defeat)
+        win_text = "REMAKE" if player.remake else (Match.victory if player.win else Match.defeat)
 
         embed = discord.Embed(
             description=(
-                f"# {queue.emoji_victory if player.win else queue.emoji_defeat} \u200b {win}\n"
-                f"**{queue.map} \u200b • \u200b {queue.description} \u200b • \u200b "
-                f"{info.duration} \u200b • \u200b <t:{info.end_timestamp}:d> \u200b • \u200b "
+                f"# {queue.emoji_victory if player.win else queue.emoji_defeat}{space}{win_text}\n"
+                f"**{queue.map}{split}{queue.description}{split}{info.duration}{split}<t:{info.end_timestamp}:d>{split}"
                 f"||[{match.id.split('_')[1]}]({blitz_match(player.riot_game_name, player.riot_tag_line, match.region, match.id)})||**\n"
                 f"```ansi\n{Color.ansi_gray}—————————————————————————————————————————————————————————————```"
             ),
             color=Color.victory if player.win else Color.defeat,
         )
-        if info.teams[0].bans:
-            bans_team_1_emoji = " ".join(ban.champion.get_emoji for ban in info.teams[0].bans)
-            bans_team_2_emoji = " ".join(ban.champion.get_emoji for ban in info.teams[1].bans)
-            embed.add_field(
-                name="",
-                value=f"{bans_team_1_emoji}{blank * 15}{bans_team_2_emoji}",
-                inline=False,
-            )
-        Embed.match_team(embed=embed, team_id=100, team=info.teams[0], participants=info.participants[:5])
-        Embed.match_team(embed=embed, team_id=200, team=info.teams[1], participants=info.participants[5:])
+        
+        if queue == Queue.cherry:
+            Embed.cherry_match(embed=embed, info=info)
+        else:
+            Embed.classic_aram_match(embed=embed, info=info)
+        
         return embed
 
     @staticmethod
@@ -453,7 +650,7 @@ class Embed:
                 "### THIS MIGHT BE BECAUSE...\n"
                 f"{blank}• This summoner hasn't played any ranked matches\n"
                 f"{blank}• This summoner isn't fiends with the bot (and thus bot can't\n"
-                f"{blank} \u200b  \u200b see their matches)\n"
+                f"{blank}{space * 2}see their matches)\n"
                 f"{blank}• This summoner hasn't played any matches since May 1st\n"
                 f"{blank}\n{blank}\n{blank}\n"
             ),
@@ -463,5 +660,3 @@ class Embed:
         ).set_thumbnail(
             url=Icon.random_poro(happy=False),
         )
-
-#TODO: create embed for arena

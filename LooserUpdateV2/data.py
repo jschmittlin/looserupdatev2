@@ -376,7 +376,7 @@ class Queue(Enum):
     ranked_solo_five = "RANKED_SOLO_5x5"
     ranked_flex_five = "RANKED_FLEX_SR"
     aram = "ARAM"
-    cherry = "ARENA"
+    cherry = "CHERRY"
 
     def from_id(id: int) -> "Queue":
         return {i: queue for queue, i in QUEUE_IDS.items()}[id]
@@ -424,7 +424,7 @@ QUEUE_MAPS = {
     Queue.ranked_solo_five: "Summoner's Rift",
     Queue.ranked_flex_five: "Summoner's Rift",
     Queue.aram: "Howling Abyss",
-    Queue.cherry: "Rings of Wrath",
+    Queue.cherry: "Arena",
 }
 
 QUEUE_DESCRIPTIONS = {

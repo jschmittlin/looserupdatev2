@@ -13,7 +13,7 @@ LOGGER = logging.getLogger("looserupdatev2.core.emoji")
 class Server:
     _file = "servers.json"
     _type = "server"
-    _data_types = ["item", "champion", "summonerspell", "rune"]
+    _data_types = ["item", "champion", "summonerspell", "rune", "augment"]
 
     def __init__(self, bot: discord.Client):
         self.bot = bot
@@ -45,6 +45,9 @@ class Server:
     def _get_server_available(self, type: str) -> Optional[int]:
         if type not in self._data_types:
             raise ValueError(f"Type must be one of {self._data_types}")
+
+        if type not in self._data:
+            raise ValueError(f"Type {type} not found in data")
 
         for server in self._data[type]:
             if server["emoji"]["slotsAvailable"] > 0:
@@ -169,5 +172,3 @@ class EmojiObject(object):
         await server.delete_all_emojis(self._data_type)
         self._data = self._data_default["data"]
         self.to_json()
-
-    # TODO: modify data structure to add guild id on emoji for delete specific emoji

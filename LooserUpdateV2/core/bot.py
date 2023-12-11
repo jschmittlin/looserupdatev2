@@ -49,6 +49,7 @@ class LooserUpdateV2Bot(AutoShardedBot):
             ddragon,    
             get_latest_version,
             get_data_dragon,
+            get_data_cdragon,
         )
 
         files = [
@@ -56,12 +57,16 @@ class LooserUpdateV2Bot(AutoShardedBot):
             "champion.json",
             "item.json",
             "summoner.json",
-            "runesReforged.json"
+            "runesReforged.json",
+            "spellbuffs.json",
         ]
 
         ddragon["version"] = get_latest_version()
         for file in files:
-            ddragon["cache"][file] = get_data_dragon(file=file)
+            if file == "spellbuffs.json":
+                ddragon["cache"][file] = get_data_cdragon(file=file)
+            else:
+                ddragon["cache"][file] = get_data_dragon(file=file)
             await asyncio.sleep(1) 
 
     @tasks.loop(minutes=1)
@@ -102,6 +107,16 @@ class LooserUpdateV2Bot(AutoShardedBot):
                 await rune.emoji.add_emoji(
                     server=server, name=rune.id, url=rune.url
                 )
+                pass
+            elif type == "augment":
+                from .staticdata.augment import Augment
+                augment = Augment(id=id)
+                await augment.emoji.add_emoji(
+                    server=server, name=augment.id, url=augment.url
+                )
+                pass
+            else:
+                LOGGER.warning(f"Unknown type '{type}'")
                 pass
 
         server.to_json()

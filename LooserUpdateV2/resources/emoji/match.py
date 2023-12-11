@@ -36,3 +36,8 @@ class Match:
     defeat=f"{_defeat_1}{_defeat_2}{_defeat_3}{_defeat_4}"
 
     #TODO: add emoji for REMAKE
+
+    krug="<:krug:1183748738230014043>"
+    minion="<:minion:1183748741023408169>"
+    poro="<:poro:1183748743128956949>"
+    scuttle="<:scuttle:1183748746471817326>"
