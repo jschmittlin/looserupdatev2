@@ -153,7 +153,7 @@ class ProfileView(View):
         try:
             embed = Embed.profile_match(puuid=self.summoner.puuid, match=self.match_history[int(select.values[0])])
         except Exception as error:
-            LOGGER.error(error)
+            LOGGER.error(f"embed: {error}")
             embed = Embed.profile_match_error()
 
         try:

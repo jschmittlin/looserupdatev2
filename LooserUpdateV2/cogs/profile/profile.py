@@ -39,14 +39,9 @@ class Profile(commands.Cog):
 
         try:
             embed = Embed.profile_overview(summoner=summoner)
-        except Exception as error:
-            embed = Embed.error(type="embed", error=error)
-            return await interaction.followup.send(embed=embed)
-
-        try:
             view = ProfileView(summoner=summoner)
         except Exception as error:
-            embed = Embed.error(type="view", error=error)
+            embed = Embed.error(type="embed", error=error)
             return await interaction.followup.send(embed=embed)
 
         await interaction.followup.send(embed=embed, view=view)

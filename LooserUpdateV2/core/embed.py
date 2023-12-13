@@ -19,9 +19,12 @@ def blitz_profile(name: str, region: Region) -> str:
     )
 
 def blitz_match(name: str, tag: str, region: Region, match_id: str) -> str:
-    return "https://blitz.gg/lol/match/{region}/{name}-{tag}/{matchId}".format(
-        region=str(region.platform).lower(), name=name.replace(' ', '%20'), tag=tag, matchId=match_id.split('_')[1],
-    )
+    try:
+        return "https://blitz.gg/lol/match/{region}/{name}-{tag}/{matchId}".format(
+            region=str(region.platform).lower(), name=name.replace(' ', '%20'), tag=tag, matchId=match_id.split('_')[1],
+        )
+    except NoneType:
+        return "https://blitz.gg"
 
 def opgg(name: str, region: str) -> str:
     return "https://www.op.gg/summoners/{region}/{name}".format(
@@ -54,7 +57,7 @@ def spacing_lane(position: Lane) -> str:
     if position == Lane.middle:
         return blank + space * 1
     if position == Lane.bottom:
-        return blank
+        return space * 2
     if position == Lane.utility:
         return ""
     if position == Lane.fill:
@@ -70,10 +73,26 @@ def spacing_queue(queue: Queue) -> str:
     if queue == Queue.ranked_flex_five:
         return space * 4
     if queue == Queue.aram:
-        return blank * 5 + space
+        return blank * 4 + space * 2
     if queue == Queue.cherry:
-        return blank * 5 + space
+        return blank * 4 + space * 2
 
+def get_cherry_team(id: int, placement: int) -> str:
+    team_names = {
+        1: (Match.poro, Match.poro_title),
+        2: (Match.minion, Match.minion_title),
+        3: (Match.scuttle, Match.scuttle_title),
+        4: (Match.krug, Match.krug_title),
+    }
+    team_positions = {
+        1: (Match.poro_1st, Match.minion_1st, Match.scuttle_1st, Match.krug_1st),
+        2: (Match.poro_2nd, Match.minion_2nd, Match.scuttle_2nd, Match.krug_2nd),
+        3: (Match.poro_3rd, Match.minion_3rd, Match.scuttle_3rd, Match.krug_3rd),
+        4: (Match.poro_4th, Match.minion_4th, Match.scuttle_4th, Match.krug_4th),
+    }
+    team_name, team_title = team_names[id]
+    team_position = team_positions[placement][id - 1]
+    return f"{team_position}{team_name} {team_title}" if team_name else ""
 
 class Embed:
     @staticmethod
@@ -322,7 +341,7 @@ class Embed:
     @staticmethod
     def mini_classic_aram(embed: discord.Embed, info: "Info", player: "Participant") -> None:
         queue = info.queue
-        win = "REMAKE" if player.remake else (Match.victory if player.win else Match.defeat)
+        win = Match.remake if player.remake else (Match.victory if player.win else Match.defeat)
         map_emoji = queue.emoji_victory if player.win else queue.emoji_defeat
         items_emoji = " ".join(item.get_emoji for item in player.items)
         position_emoji = f"{player.position.emoji_hover} {player.position}"
@@ -366,31 +385,13 @@ class Embed:
     @staticmethod
     def mini_cherry(embed: discord.Embed, info: "Info", player: "Participant") -> None:
         queue = info.queue
-
-        if player.subteam_id == 1:
-            team_name = f"{Match.poro} PORO"
-        elif player.subteam_id == 2:
-            team_name = f"{Match.minion} MINION"
-        elif player.subteam_id == 3:
-            team_name = f"{Match.scuttle} SCUTTLE"
-        elif player.subteam_id == 4:
-            team_name = f"{Match.krug} KRUG"
-
-        if player.subteam_placement == 1:
-            team_position = f"{player.subteam_placement}ST"
-        elif player.subteam_placement == 2:
-            team_position = f"{player.subteam_placement}ND"
-        elif player.subteam_placement == 3:
-            team_position = f"{player.subteam_placement}RD"
-        elif player.subteam_placement == 4:
-            team_position = f"{player.subteam_placement}TH"
         
         field_2_blank = spacing_lane(Lane.fill) + spacing_queue(queue)
         items_emoji = " ".join(item.get_emoji for item in player.items)
         augments_emoji = " ".join(augment.get_emoji for augment in player.augments)
 
         embed.add_field(
-            name=f"**{team_position}{space}{team_name}**",
+            name=get_cherry_team(id=player.subteam_id, placement=player.subteam_placement),
             value=(
                 f"{player.champion.get_emoji}"
                 f"{blank}"
@@ -403,11 +404,11 @@ class Embed:
             name=f"**{field_2_blank}{Lane.fill.emoji_hover}{split}{queue.description}**",
             value=(
                 f"{blank * 2}{items_emoji}\n"
-                f"{Match.sword} **{player.damage_dealt:,}**"
-                f"{space * 3}"
-                f"{Match.shield} **{player.damage_taken:,}**"
-                f"{space * 3}"
-                f"{Match.cc} **{player.crowd_control:,}**"
+                f"{Match.sword}**{player.damage_dealt:,}**"
+                f"{space * 2}"
+                f"{Match.shield}**{player.damage_taken:,}**"
+                f"{space * 2}"
+                f"{Match.cc}**{player.crowd_control:,}**"
             ),
             inline=True,
         )
@@ -542,7 +543,7 @@ class Embed:
             spell_d_emoji = participant.spell_d.get_emoji
             spell_f_emoji = participant.spell_f.get_emoji
             name = participant.riot_game_name
-            truncated_name = name[:12] + "..." if len(name) > 15 else name
+            truncated_name = name[:10] + "..." if len(name) > 13 else name
             items_emoji = " ".join(item.get_emoji for item in participant.items)
             augments_emoji = "".join(augment.get_emoji for augment in participant.augments)
             kda = f"{participant.kills} / {participant.deaths} / {participant.assists}"
@@ -561,26 +562,8 @@ class Embed:
             field_2_value += f"{items_emoji}\n"
             field_3_value += f"{augments_emoji} {kda_blank}\n"
 
-        if subteam_id == 1:
-            team_name = f"{Match.poro} PORO"
-        elif subteam_id == 2:
-            team_name = f"{Match.minion} MINION"
-        elif subteam_id == 3:
-            team_name = f"{Match.scuttle} SCUTTLE"
-        elif subteam_id == 4:
-            team_name = f"{Match.krug} KRUG"
-
-        if subteam_placement == 1:
-            team_position = f"{subteam_placement}ST"
-        elif subteam_placement == 2:
-            team_position = f"{subteam_placement}ND"
-        elif subteam_placement == 3:
-            team_position = f"{subteam_placement}RD"
-        elif subteam_placement == 4:
-            team_position = f"{subteam_placement}TH"
-
         embed.add_field(
-            name=f"**{team_position}{space}{team_name}**",
+            name=get_cherry_team(id=subteam_id, placement=subteam_placement),
             value=field_1_value,
             inline=True,
         )
@@ -590,7 +573,7 @@ class Embed:
             inline=True,
         )
         embed.add_field(
-            name=f"{blank * 5}{Match.gold} {total_gold}",
+            name=f"{blank * 4}{space * 2}{Match.gold} {total_gold}",
             value=field_3_value,
             inline=True,
         )
@@ -600,7 +583,7 @@ class Embed:
         bans = " ".join(ban.champion.get_emoji for ban in info.teams[0].bans)
 
         embed.add_field(
-            name="", value=f" {blank * 17} {bans}", inline=False,
+            name="", value=f"{bans}", inline=False,
         )
 
         teams = [
@@ -623,7 +606,7 @@ class Embed:
         queue = info.queue
 
         player = next((p for p in info.participants if p.puuid == puuid), info.participants[0])
-        win_text = "REMAKE" if player.remake else (Match.victory if player.win else Match.defeat)
+        win_text = Match.remake if player.remake else (Match.victory if player.win else Match.defeat)
 
         embed = discord.Embed(
             description=(
