@@ -133,7 +133,7 @@ class LolObject(object):
             try:
                 response = api_method(query)
             except Exception as error:
-                raise Exception(error)
+                raise Exception(f"{api_name}: {error}")
         else:
             raise ValueError(f"Method for {api_name} not defined")
 

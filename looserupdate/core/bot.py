@@ -146,6 +146,7 @@ class LooserUpdateV2Bot(AutoShardedBot):
                 embed = Embed.player_update(player=player)
                 view = UpdatePlayerView(player=player)
                 await channel.send(embed=embed, view=view)
+            await asyncio.sleep(1) 
 
         players.to_json()
 

@@ -1,11 +1,17 @@
 
 # LooserUpdateV2
 
-A personnal discord bot using  Riot Games League of Legends API (https://developer.riotgames.com/).
+A personnal discord bot using Discord slash commands and Riot Games League of Legends API (https://developer.riotgames.com/).
 
-LooverUpdateV2 manages an information panel in a text channel which displays whether my friend are played a Ranked game.  It also sends information messages about player.
+LooserUpdateV2 is a discord bot that allows you to view summoner profile and get notified when a player has played a ranked game.
 
-This Bot is inspired by a previous project developed by [@mlouison](https://github.com/mlouison)
+Inspired by LooserUpdate introduced by [@mlouison](https://github.com/mlouison)
+
+## Features
+
+* Summoner profile
+* Notifed when a player has played a ranked game
+* Automatic add new emoji
 
 ## Built with
 
@@ -16,7 +22,7 @@ This Bot is inspired by a previous project developed by [@mlouison](https://gith
 
 | Command                                   | function                           |
 |-------------------------------------------|------------------------------------|
-| `/profile` +name                          | View selected summoner profile     |
+| `/profile` +name (+region)                | View selected summoner profile     |
 | `/set-region` +region                     | Set the default region             |
 | `/add-player` +name +region               | Add player to the update list      |
 | `/remove-player` +name                    | Remove player from the update list |
@@ -38,6 +44,10 @@ This Bot is inspired by a previous project developed by [@mlouison](https://gith
 * Match Details
 
 ![image](https://cdn.discordapp.com/attachments/1039594104759271428/1065718071198748834/Capture_match_details.PNG)
+
+* Ranked Game Notification
+
+![image](https://cdn.discordapp.com/attachments/1039594104759271428/1065718071395872769/Capture_notif.PNG)
 
 ## Disclaimer
 
