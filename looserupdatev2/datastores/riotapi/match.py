@@ -1,13 +1,11 @@
 from typing import MutableMapping, Any
 
 from .common import RiotAPIService, APIError, APINotFoundError
-from ...data import MatchType, Queue, QUEUE_IDS
+from ...data import Continent, MatchType, Queue, QUEUE_IDS
 from ...dto.match import (
     MatchListDto,
     MatchDto,
 )
-
-_service = "match"
 
 
 class MatchApi(RiotAPIService):
@@ -23,23 +21,25 @@ class MatchApi(RiotAPIService):
 
         :param dict query:  Query parameters for the request:
                             - platform: Platform
-                            - match.id: Match ID
+                            - id:       Match ID
 
         :return: MatchDto
         """
-        parameters = dict(
-            platform=query["platform"].value.lower(), matchId=query["match.id"],
+        platform = query["platform"]
+        continent: Continent = platform.continent
+        id = query["id"]
+        url = "https://{continent}.api.riotgames.com/lol/match/v5/matches/{platform}_{id}".format(
+            continent=continent.value.lower(), platform=platform.value, id=id,
         )
-        endpoint = "by_id"
-
         try:
-            data = self._get(
-                _service, endpoint, parameters,
-            )
-        except APIError as error:
+            data = self._get(url, {})
+            data = data["info"]
+        except APINotFoundError as error:
             raise APINotFoundError(str(error)) from error
 
-        return MatchDto(**data)
+        data["region"] = platform.region.value
+        data["matchId"] = id
+        return MatchDto(data)
 
     def get_match_list(
         self, query: MutableMapping[str, Any]
@@ -47,20 +47,20 @@ class MatchApi(RiotAPIService):
         """
         Get a list of match IDs by PUUID.
 
-        :param dict query:      Query parameters for the request:
-                                - platform:         Platform
-                                - summoner.puuid:   Encrypted summoner ID. Max length 63 characters.
-                                - (optional) queue: Filter the list of match ids by the queue ids
-                                                    This filter is mutually inclusive of the type filter
-                                                    meaning any match ids returned must match both the
-                                                    queue and type filters.
-                                - (optional) type:  Filter the list of match ids by the type of match.
-                                                    This filter is mutually inclusive of the queue filter
-                                                    meaning any match ids returned must match both the
-                                                    queue and type filters.
-                                - (optional) start: Defaults to 0. Start index.
-                                - (optional) count: Defaults to 20. Valid values: 0 to 100. Number of
-                                                    matches to return.
+        :param dict query:  Query parameters for the request:
+                            - region:           Region
+                            - puuid:            Encrypted summoner ID. Max length 63 characters.
+                            - (optional) queue: Filter the list of match ids by the queue ids
+                                                This filter is mutually inclusive of the type filter
+                                                meaning any match ids returned must match both the
+                                                queue and type filters.
+                            - (optional) type:  Filter the list of match ids by the type of match.
+                                                This filter is mutually inclusive of the queue filter
+                                                meaning any match ids returned must match both the
+                                                queue and type filters.
+                            - (optional) start: Defaults to 0. Start index.
+                            - (optional) count: Defaults to 20. Valid values: 0 to 100. Number of
+                                                matches to return.
 
         :return: List[string]
         """
@@ -68,10 +68,10 @@ class MatchApi(RiotAPIService):
 
         riot_max_interval = 100
 
-        start = query["start"]
+        start = query.get("start", 0)
         parameters["start"] = start
 
-        count = query["count"]
+        count = query.get("count", 20)
         parameters["count"] = int(min(riot_max_interval, count))
 
         queue = query.get("queue", None)
@@ -82,21 +82,26 @@ class MatchApi(RiotAPIService):
         if type is not None:
             parameters["type"] = MatchType(type).value   
 
-        puuid = query["summoner.puuid"]
-        parameters["encryptedPUUID2"] = puuid
-
-        platform = query["platform"]
-        parameters["platform"] = platform.value.lower()
-
-        endpoint = "matchlist_by_puuid"
+        continent: Continent = query["region"].continent
+        puuid: str = query["puuid"]
+        url = "https://{continent}.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids".format(
+            continent=continent.value.lower(), puuid=puuid,
+        )
 
         try:
-            data = self._get(
-                _service, endpoint, parameters,
-            )
-        except APIError as error:
-            raise APINotFoundError(str(error)) from error
+            data = self._get(url, parameters)
+            data = [id.split("_")[1] for id in data]
+        except APINotFoundError as error:
+            data = []
 
-        return MatchListDto(
-            match_ids=data, puuid=puuid, queue=queue, type=type, start=start, count=parameters["count"],
-        )
+        data = {
+            "match_ids": data,
+            "region": query["region"].value,
+            "puuid": puuid,
+            "queue": queue,
+            "type": type,
+            "start": start,
+            "count": parameters["count"],
+        }
+
+        return MatchListDto(data)

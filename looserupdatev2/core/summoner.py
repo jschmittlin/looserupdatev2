@@ -57,14 +57,18 @@ class Summoner(LolObject):
             s["id"] = self._data[SummonerData].id
         if hasattr(other._data[SummonerData], "id"):
             o["id"] = other._data[SummonerData].id
-        if hasattr(self._data[SummonerData], "name"):
-            s["name"] = self._data[SummonerData].name
-        if hasattr(other._data[SummonerData], "name"):
-            o["name"] = other._data[SummonerData].name
+        if hasattr(self._data[SummonerData], "accountId"):
+            s["accountId"] = self._data[SummonerData].accountId
+        if hasattr(other._data[SummonerData], "accountId"):
+            o["accountId"] = other._data[SummonerData].accountId
+        if hasattr(self._data[SummonerData], "puuid"):
+            s["puuid"] = self._data[SummonerData].puuid
+        if hasattr(other._data[SummonerData], "puuid"):
+            o["puuid"] = other._data[SummonerData].puuid
         if any(s.get(key, "s") == o.get(key, "o") for key in s):
             return True
         else:
-            return self.id == other.id
+            return self.account_id == other.account_id
 
     def __str__(self) -> str:
         try:
@@ -72,16 +76,24 @@ class Summoner(LolObject):
         except AttributeError:
             id = "?"
         try:
-            name = self._data[SummonerData].name
+            account_id = self._data[SummonerData].accountId
         except AttributeError:
-            name = "?"
+            account_id = "?"
         try:
             puuid = self._data[SummonerData].puuid
         except AttributeError:
             puuid = "?"
-        return "Summoner(id={id}, name={name}, puuid={puuid})".format(
-            id=id, name=name, puuid=puuid
+        try:
+            name = self._data[SummonerData].name
+        except AttributeError:
+            name = "?"
+        return "Summoner(id={id}, account_id={account_id}, puuid={puuid}, name={name})".format(
+            id=id, account_id=account_id, puuid=puuid, name=name,
         )
+
+    @property
+    def continent(self) -> str:
+        return self.region.continent
 
     @property
     def region(self) -> Platform:
@@ -92,12 +104,16 @@ class Summoner(LolObject):
         return self.region.platform
 
     @property
-    def puuid(self) -> str:
-        return self._data[SummonerData].puuid
-
-    @property
     def id(self) -> str:
         return self._data[SummonerData].id
+
+    @property
+    def account_id(self) -> str:
+        return self._data[SummonerData].accountId
+
+    @property
+    def puuid(self) -> str:
+        return self._data[SummonerData].puuid
 
     @property
     def name(self) -> str:
@@ -106,12 +122,22 @@ class Summoner(LolObject):
     @property
     def level(self) -> int:
         return self._data[SummonerData].level
-    
+
+    @property
+    def revision_date(self) -> int:
+        return self._data[SummonerData].revisionDate
+
     @property
     def profile_icon(self) -> ProfileIcon:
         return ProfileIcon(id=self._data[SummonerData].profileIconId)
 
     # Special core methods
+
+    @property
+    def account(self) -> "Account":
+        from .account import Account
+
+        return Account(puuid=self.puuid, continent=self.continent)
 
     @property
     def challenges(self) -> "Challenges":

@@ -12,7 +12,6 @@ from ..dto import league as dto
 
 
 class LeagueEntryData(CoreData):
-    _api = None
     _dto_type = dto.LeagueEntryDto
     _renamed = {
         "queueType": "queue",
@@ -44,6 +43,10 @@ class LeagueEntry(LolObject):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
+    @property
+    def region(self) -> Region:
+        return Region(self._data[LeagueEntryData].region)
+
     def __str__(self) -> str:
         try:
             queue = self._data[LeagueEntryData].queue
@@ -74,11 +77,12 @@ class LeagueEntry(LolObject):
         )
 
     @property
+    def platform(self) -> Platform:
+        return self.region.platform
+
+    @property
     def queue(self) -> Queue:
-        try:
-            return Queue(self._data[LeagueEntryData].queue)
-        except AttributeError:
-            return None
+        return Queue(self._data[LeagueEntryData].queue)
 
     @property
     def tier(self) -> Tier:
@@ -100,14 +104,33 @@ class LeagueEntry(LolObject):
     def losses(self) -> int:
         return self._data[LeagueEntryData].losses
 
+    @property
+    def veteran(self) -> bool:
+        return self._data[LeagueEntryData].veteran
+
+    @property
+    def inactive(self) -> bool:
+        return self._data[LeagueEntryData].inactive
+
+    @property
+    def fresh_blood(self) -> bool:
+        return self._data[LeagueEntryData].freshBlood
+
+    @property
+    def hot_streak(self) -> bool:
+        return self._data[LeagueEntryData].hotStreak
+
 class LeagueEntries(LolObject):
     _data_types = {LeagueEntriesData}
 
-    def __init__(self, *, summoner: Summoner):
-        self.__summoner__ = summoner
+    def __init__(
+        self,
+        *,
+        summoner: Summoner
+    ):
+        self.__summoner = summoner
         kwargs = {
-            "region": summoner.region,
-            "summoner.id": summoner.id,
+            "region": summoner.region, "id": summoner.id,
         }
         super().__init__(**kwargs)
 
@@ -139,5 +162,12 @@ class LeagueEntries(LolObject):
     def flex(self) -> LeagueEntry:
         for entry in self._data[LeagueEntriesData].entries:
             if entry.queue is Queue.ranked_flex_five:
+                return entry
+        raise ValueError("Queue does not exist for this summoner.")
+
+    @property
+    def arena(self) -> LeagueEntry:
+        for entry in self._data[LeagueEntriesData].entries:
+            if entry.queue is Queue.cherry:
                 return entry
         raise ValueError("Queue does not exist for this summoner.")

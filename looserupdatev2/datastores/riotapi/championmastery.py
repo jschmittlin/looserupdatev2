@@ -7,8 +7,6 @@ from ...dto.championmastery import (
     ChampionMasteryScoreDto,
 )
 
-_service = "champion_mastery"
-
 
 class ChampionMasteryApi(RiotAPIService):
     """
@@ -23,30 +21,38 @@ class ChampionMasteryApi(RiotAPIService):
         champion points descending.
 
         :param dict query:  Query parameters for the request:
-                            - platform:    Platform
-                            - summoner.id: Encrypted summoner ID. Max length 63 characters.
+                            - platform: Platform
+                            - puuid:    Encrypted PUUID. Exact length of 78 characters.
+                            - (or) id:  Encrypted summoner ID. Max length 63 characters.
 
-        :return: List[ChampionMasteryDto]: This object contains a list of Champion
-                                           Mastery information for player and champion
-                                           combination.
+        :return: List[ChampionMasteryDto]
         """
-        champion_mastery_count = 3
-
-        parameters = dict(
-            platform=query["platform"].value.lower(), encryptedSummonerId=query["summoner.id"],
-        )
-        endpoint = "by_summoner"
+        if "puuid" in query:
+            url = "https://{platform}.api.riotgames.com/lol/champion-mastery/v4/champion-masteries/by-puuid/{encryptedPUUID}/top".format(
+                platform=query["platform"].value.lower(), encryptedPUUID=query["puuid"],
+            )
+        if "id" in query:
+            url = "https://{platform}.api.riotgames.com/lol/champion-mastery/v4/champion-masteries/by-summoner/{encryptedSummonerId}/top".format(
+                platform=query["platform"].value.lower(), encryptedSummonerId=query["id"],
+            )
 
         try:
-            data = self._get(
-                _service, endpoint, parameters,
-            )
-        except APIError as error:
+            data = self._get(url, {})
+        except APINotFoundError as error:
             raise APINotFoundError(str(error)) from error
 
-        return ChampionMasteryListDto(
-            championMasteryList=data[:champion_mastery_count]
-        )
+        data = {
+            "championMasteryList": data,
+            "region": query["platform"].region.value,
+        }
+
+        if "puuid" in query:
+            data["puuid"] = query["puuid"]
+
+        if "id" in query:
+            data["id"] = query["id"]
+
+        return ChampionMasteryListDto(data)
 
     def get_champion_mastery_score(
         self, query: MutableMapping[str, Any]
@@ -56,23 +62,35 @@ class ChampionMasteryApi(RiotAPIService):
         individual champion mastery levels.
 
         :param dict query:  query parameters for the request:
-                            - platform:    Platform
-                            - summoner.id: Encrypted summoner ID. Max length 63 characters.
+                            - platform: Platform
+                            - puuid:    Encrypted PUUID. Exact length of 78 characters.
+                            - (or) id:  Encrypted summoner ID. Max length 63 characters.
 
         :return: ChampionMasteryScoreDto
         """
-        parameters = dict(
-            platform=query["platform"].value.lower(), encryptedSummonerId=query["summoner.id"],
-        )
-        endpoint = "scores_by_summoner"
+        if "puuid" in query:
+            url = "https://{platform}.api.riotgames.com/lol/champion-mastery/v4/scores/by-puuid/{encryptedPUUID}".format(
+                platform=query["platform"].value.lower(), encryptedPUUID=query["puuid"],
+            )
+        if "id" in query:
+            url = "https://{platform}.api.riotgames.com/lol/champion-mastery/v4/scores/by-summoner/{encryptedSummonerId}".format(
+                platform=query["platform"].value.lower(), encryptedSummonerId=query["id"],
+            )
 
         try:
-            data = self._get(
-                _service, endpoint, parameters,
-            )
-        except APIError as error:
+            data = self._get(url, {})
+        except APINotFoundError as error:
             raise APINotFoundError(str(error)) from error
 
-        return ChampionMasteryScoreDto(
-            score=data
-        )
+        data = {
+            "score": data,
+            "region": query["platform"].region.value,
+        }
+
+        if "puuid" in query:
+            data["puuid"] = query["puuid"]
+
+        if "id" in query:
+            data["id"] = query["id"]
+
+        return ChampionMasteryScoreDto(data)

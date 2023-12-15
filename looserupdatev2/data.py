@@ -42,8 +42,42 @@ class Region(Enum):
         try:
             return platform.region
         except AttributeError:
-            if isinstance(platform, str):
-                return Platform(platform).region
+            return Platform(platform).region
+
+    @property
+    def continent(self) -> "Continent":
+        if self is Region.brazil:
+            return Continent.americas
+        if self is Region.europe_north_east:
+            return Continent.europe
+        if self is Region.europe_west:
+            return Continent.europe
+        if self is Region.japan:
+            return Continent.asia
+        if self is Region.korea:
+            return Continent.asia
+        if self is Region.latin_america_north:
+            return Continent.americas
+        if self is Region.latin_america_south:
+            return Continent.americas
+        if self is Region.north_america:
+            return Continent.americas
+        if self is Region.oceania:
+            return Continent.sea
+        if self is Region.turkey:
+            return Continent.europe
+        if self is Region.russia:
+            return Continent.europe
+        if self is Region.philippines:
+            return Continent.asia
+        if self is Region.singapore:
+            return Continent.asia
+        if self is Region.thailand:
+            return Continent.asia
+        if self is Region.taiwan:
+            return Continent.asia
+        if self is Region.vietnam:
+            return Continent.asia
 
 REGION_ICONS = {
     Region.brazil: Icon.bresil,
@@ -77,9 +111,6 @@ class Platform(Enum):
     taiwan = "TW2"
     vietnam = "VN2"
 
-    def __str__(self) -> str:
-        return self.value
-
     @property
     def region(self) -> "Region":
         return getattr(Region, self.name)
@@ -89,8 +120,18 @@ class Platform(Enum):
         try:
             return region.platform
         except AttributeError:
-            if isinstance(region, str):
-                return Region(region).platform
+            return Region(region).platform
+
+    @property
+    def continent(self) -> "Continent":
+        return self.region.continent
+
+
+class Continent(Enum):
+    americas = "AMERICAS"
+    asia = "ASIA"
+    europe = "EUROPE"
+    sea = "SEA"
 
 
 class Lane(Enum):

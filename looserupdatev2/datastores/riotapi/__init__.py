@@ -7,34 +7,34 @@ from .common import RiotAPIService
 def _default_services(
     api_key: str,
 ) -> Dict[RiotAPIService, str]:
-    from riotwatcher import LolWatcher
+    from ..common import HTTPClient
     from .challenges import ChallengesApi
     from .championmastery import ChampionMasteryApi
     from .league import LeagueApi
     from .summoner import SummonerApi
     from .match import MatchApi
 
-    client = LolWatcher(api_key)
+    client = HTTPClient()
     services = {
         "ChallengesAPI": ChallengesApi(
             api_key=api_key,
-            client=client,
+            http_client=client,
         ),
         "ChampionMasteryAPI": ChampionMasteryApi(
             api_key=api_key,
-            client=client,
+            http_client=client,
         ),
         "LeagueAPI": LeagueApi(
             api_key=api_key,
-            client=client,
+            http_client=client,
         ),
         "MatchAPI": MatchApi(
             api_key=api_key,
-            client=client,
+            http_client=client,
         ),
         "SummonerAPI": SummonerApi(
             api_key=api_key,
-            client=client,
+            http_client=client,
         ),
     }
 

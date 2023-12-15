@@ -1,103 +1,118 @@
-from typing import MutableMapping, Any
-import logging
+from typing import MutableMapping, Any, Union
 
-from riotwatcher import LolWatcher, ApiError
+from ..common import HTTPClient, HTTPError
 
-
-class HTTPError(RuntimeError):
-    def __init__(self, message, code = 400):
-        super().__init__(message)
-        self.code = code
+class APIRequestError(HTTPError):
+    pass
 
 class APIError(HTTPError):
     pass
 
-class APIRequestError(ApiError):
-    def __init__(self, message):
-        self.code = int(message[:3])
-        self.message = _ERROR_CODES.get(self.code, message)
-        LOGGER.error(f"{self.code} {self.message}")
-        super().__init__(f"{self.code} {self.message}")
-
 class APINotFoundError(HTTPError):
     pass
 
+class APIForbiddenError(APINotFoundError):
+    pass
 
 _ERROR_CODES = {
-    400: "Bad request",
-    401: "Unauthorized",
-    403: "Forbidden",
-    404: "Data not found",
-    405: "Method not allowed",
-    415: "Unsupported media type",
-    429: "Rate limit exceeded",
-    500: "Internal server error",
-    502: "Bad gateway",
-    503: "Service unavailable",
-    504: "Gateway timeout",
+    400: APIRequestError,
+    401: APIRequestError,
+    403: APIForbiddenError,
+    404: APINotFoundError,
+    405: APIRequestError,
+    415: RuntimeError,
+    429: RuntimeError,
+    500: APIError,
+    502: APIError,
+    503: APIError,
+    504: APIError,
 }
-
-_RENAMED = {
-    "platform": "region",
-    "encryptedAccountId": "encrypted_account_id",
-    "encryptedPUUID1": "encrypted_puuid",
-    "encryptedPUUID2": "puuid",
-    "encryptedSummonerId": "encrypted_summoner_id",
-    "summonerName": "summoner_name",
-    "matchId": "match_id",
-}
-
-LOGGER = logging.getLogger("riotapi")
 
 
 class RiotAPIService():
     def __init__(
         self,
         api_key: str,
-        client: LolWatcher = None,
+        http_client: HTTPClient = None,
     ):
-        if client is None:
-            self._client = LolWatcher(api_key)
+        if http_client is None:
+            self._client = HTTPClient()
         else:
-            self._client = client
+            self._client = http_client
+
+        self._headers = {"X-Riot-Token": api_key}
 
     def _get(
         self,
-        baseapi: str,
-        endpoint: str,
+        url: str,
         parameters: MutableMapping[str, Any] = None,
-    ):
+    ) -> Union[dict, list, Any]:
         request = RiotAPIRequest(
-            servise = self,
-            baseapi = baseapi,
-            endpoint = endpoint,
-            parameters = parameters,
+            servise=self,
+            url=url,
+            parameters=parameters,
         )
         try:
             return request()
-        except APIRequestError as error:
-            raise APIError(str(error)) from error
+        except HTTPError as error:
+            error_type = _ERROR_CODES[error.code]
+            if error_type is RuntimeError:
+                new_error = RuntimeError(
+                    "Encountered HTTP error {code} with message {message}".format(
+                        code=error.code, message=str(error)
+                    )
+                )
+            elif error_type is APIError:
+                new_error = APIError(
+                    "Riot API is currently unavailable. Please try again later. The received error code was {code}: {message}".format(
+                        code=error.code, message=str(error)
+                    ),
+                    error.code,
+                )
+            elif error_type is APINotFoundError:
+                new_error = APINotFoundError(
+                    "Riot API returned a NOT FOUND error. The received error code was {code}: {message}".format(
+                        code=error.code, message=str(error)
+                    ),
+                    error.code,
+                )
+            elif error_type is APIRequestError:
+                new_error = APIRequestError(
+                    "Riot API returned a BAD REQUEST error. The received error code was {code}: {message}".format(
+                        code=error.code, message=str(error)
+                    ),
+                    error.code,
+                )
+            elif error_type is APIForbiddenError:
+                new_error = APIForbiddenError(
+                    "Riot API returned a FORBIDDEN error. The received error code was {code}: {message}".format(
+                        code=error.code, message=str(error)
+                    ),
+                    error.code,
+                )
+            else:
+                new_error = error_type(str(error))
+
+            raise new_error from error
 
 class RiotAPIRequest(object):
     def __init__(
         self,
         servise: RiotAPIService,
-        baseapi: str,
-        endpoint: str,
-        parameters: MutableMapping[str, Any] = None,
+        url: str,
+        parameters: MutableMapping[str, Any],
     ):
         self.servise = servise
-        self.baseapi = baseapi
-        self.endpoint = endpoint
-        self.parameters = self._renamed(parameters)
-
-    @staticmethod
-    def _renamed(to_rename: MutableMapping[str, Any]):
-        return {_RENAMED.get(k, k): v for k, v in to_rename.items()}
+        self.url = url
+        self.parameters = parameters
 
     def __call__(self):
         try:
-            request = getattr(getattr(self.servise._client, self.baseapi), self.endpoint)
-            return request(**self.parameters)
-        except ApiError as error:
-            raise APIRequestError(str(error)) from error
+            body, response_headers = self.servise._client.get(
+                url=self.url,
+                parameters=self.parameters,
+                headers=self.servise._headers,
+            )
+            return body
+        except HTTPError as error:
+            raise error

@@ -13,7 +13,6 @@ from ..dto import championmastery as dto
 
 
 class ChampionMasteryData(CoreData):
-    _api = None
     _dto_type = dto.ChampionMasteryDto
     _renamed = {
         "championLevel": "level",
@@ -76,29 +75,35 @@ class ChampionMastery(LolObject):
     def points(self) -> int:
         return self._data[ChampionMasteryData].points
 
+    @property
+    def last_played(self) -> int:
+        return self._data[ChampionMasteryData].lastPlayTime
+
+    @property
+    def points_since_last_level(self) -> int:
+        return self._data[ChampionMasteryData].championPointsSinceLastLevel
+
+    @property
+    def points_until_next_level(self) -> int:
+        return self._data[ChampionMasteryData].championPointsUntilNextLevel
+
+    @property
+    def chest_granted(self) -> bool:
+        return self._data[ChampionMasteryData].chestGranted
+
+    @property
+    def tokens_earned(self) -> int:
+        return self._data[ChampionMasteryData].tokensEarned
+
 class ChampionMasteries(LolObject):
     _data_types = {ChampionMasteryListData, ChampionMasteryScoreData}
 
     def __init__(self, *, summoner: Summoner):
-        self.__summoner__ = summoner
+        self.__summoner = summoner
         kwargs = {
-            "region": summoner.region,
-            "summoner.id": summoner.id,
+            "region": summoner.region, "puuid": summoner.puuid
         }
         super().__init__(**kwargs)
-
-    def __str__(self) -> str:
-        try:
-            score = self._data[ChampionMasteryScoreData].score
-        except AttributeError:
-            score = "?"
-        try:
-            name = self.__summoner__.name
-        except AttributeError:
-            name = "?"
-        return "ChampionMasteries(summonerName={name}, score={score})".format(
-            name=name, score=score
-        )
 
     @property
     def region(self) -> Region:

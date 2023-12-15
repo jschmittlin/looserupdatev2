@@ -8,6 +8,7 @@ from .staticdata import (
     SummonerSpell,
     Augment,
 )
+from .account import Account
 from .challenges import PlayerInfo
 from .championmastery import ChampionMasteries
 from .league import LeagueEntries

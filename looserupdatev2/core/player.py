@@ -80,7 +80,7 @@ class Player(LolObject):
         summoner = Summoner(region=self.region, puuid=self.puuid)
 
         try:
-            match_id = MatchHistory(region=summoner.region, puuid=summoner.puuid, queue=Queue.ranked_solo_five, count=1).ids[0]
+            match_id = MatchHistory(region=summoner.region, puuid=summoner.puuid, queue=Queue.ranked_solo_five, count=1)[0]
         except IndexError:
             LOGGER.debug(f"'{self.name}' - match not found")
             return False
@@ -118,6 +118,10 @@ class Player(LolObject):
         return True
 
     @property
+    def continent(self) -> str:
+        return self.region.continent
+
+    @property
     def region(self) -> Region:
         return Region(self._data[PlayerData].region)
 
@@ -132,6 +136,22 @@ class Player(LolObject):
     @property
     def puuid(self) -> str:
         return self._data[PlayerData].puuid
+
+    @property
+    def game_name(self) -> str:
+        return self._data[PlayerData].gameName
+
+    @game_name.setter
+    def game_name(self, value: str) -> None:
+        self._data[PlayerData].gameName = value
+
+    @property
+    def tag_line(self) -> str:
+        return self._data[PlayerData].tagLine
+
+    @tag_line.setter
+    def tag_line(self, value: str) -> None:
+        self._data[PlayerData].tagLine = value
 
     @property
     def name(self) -> str:
@@ -190,7 +210,7 @@ class Player(LolObject):
 
     @tier.setter
     def tier(self, value: str) -> None:
-        self._data[PlayerData].tier = value.value
+        self._data[PlayerData].tier = value
 
     @property
     def division(self) -> Division:
@@ -201,7 +221,7 @@ class Player(LolObject):
 
     @division.setter
     def division(self, value: str) -> None:
-        self._data[PlayerData].division = value.value
+        self._data[PlayerData].division = value
 
     @property
     def rank(self) -> Rank:

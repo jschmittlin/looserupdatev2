@@ -13,11 +13,6 @@ Inspired by LooserUpdate introduced by [@mlouison](https://github.com/mlouison)
 * Notifed when a player has played a ranked game
 * Automatic add new emoji
 
-## Built with
-
-* [discord.py](https://github.com/Rapptz/discord.py)
-* [Riot-Watcher](https://github.com/pseudonym117/Riot-Watcher)
-
 ## Commands
 
 | Command                                   | function                           |

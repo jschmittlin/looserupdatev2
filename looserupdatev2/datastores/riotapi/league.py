@@ -6,8 +6,6 @@ from ...dto.league import (
     LeagueEntriesDto,
 )
 
-_service = "league"
-
 
 class LeagueApi(RiotAPIService):
     """
@@ -21,23 +19,28 @@ class LeagueApi(RiotAPIService):
         Get league entries in all queues for a given summoner ID.
 
         :param dict query:  Query parameters for the request:
-                            - platform:    Platform
-                            - summoner.id: Encrypted summoner ID. Max length 63 characters.
+                            - platform: Platform
+                            - id:       Encrypted summoner ID. Max length 63 characters.
 
         :return: LeagueEntriesDTO
         """
-        parameters = dict(
-            platform=query["platform"].value.lower(), encryptedSummonerId=query["summoner.id"],
+        url = "https://{platform}.api.riotgames.com/lol/league/v4/entries/by-summoner/{encryptedSummonerId}".format(
+            platform=query["platform"].value.lower(), encryptedSummonerId=query["id"],
         )
-        endpoint = "by_summoner"
 
         try:
-            data = self._get(
-                _service, endpoint, parameters,
-            )
-        except APIError as error:
-            raise APINotFoundError(str(error)) from error
+            data = self._get(url, {})
+        except APINotFoundError as error:
+            data = []
 
-        return LeagueEntriesDto(
-            entries=data
-        )
+        region = query["platform"].region.value
+        for entry in data:
+            entry["region"] = region
+
+        data = {
+            "entries": data,
+            "region": region,
+            "summonerId": query["id"],
+        }
+
+        return LeagueEntriesDto(data)

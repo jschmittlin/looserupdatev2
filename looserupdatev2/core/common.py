@@ -3,7 +3,6 @@ import requests
 import logging
 import os
 
-from .. import configuration
 from ..data import Region, Platform
 from ..datastores.riotapi import RiotAPI
 
@@ -11,7 +10,7 @@ import json
 
 
 LOGGER = logging.getLogger("looserupdatev2.core")
-RIOT = RiotAPI(configuration.settings.riot_api_key)
+RIOT = RiotAPI()
 
 ddragon = {"version": "", "cache": {}}
 
@@ -105,10 +104,9 @@ class LolObject(object):
         
         if api_name is None:
             return query
-        
-        query["platform"] = Platform.from_region(query["region"])
-        if query["platform"] is None:
-            raise ValueError(f"Platform for {query['region']} not found")
+
+        if "region" in query:
+            query["platform"] = Platform.from_region(Region(query["region"]))
 
         api = RIOT.services.get(api_name)
 
@@ -133,12 +131,11 @@ class LolObject(object):
             try:
                 response = api_method(query)
             except Exception as error:
-                raise Exception(f"{api_name}: {error}")
+                raise Exception(f"{api_name}: {error}") from error
         else:
             raise ValueError(f"Method for {api_name} not defined")
 
-        response = self._clear(response, dto._dict)
-        response["region"] = query["region"]
+        # response = self._clear(response, dto._dict)
 
         return response
 

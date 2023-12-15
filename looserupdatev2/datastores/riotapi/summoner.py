@@ -3,8 +3,6 @@ from typing import MutableMapping, Any
 from .common import RiotAPIService, APIError, APINotFoundError
 from ...dto.summoner import SummonerDto
 
-_service = "summoner"
-
 
 class SummonerApi(RiotAPIService):
     """
@@ -27,33 +25,27 @@ class SummonerApi(RiotAPIService):
         :return: SummonerDTO: represents a summoner        
         """
         if "accountId" in query:
-            parameters = dict(
+            url = "https://{platform}.api.riotgames.com/lol/summoner/v4/summoners/by-account/{encryptedAccountId}".format(
                 platform=query["platform"].value.lower(), encryptedAccountId=query["accountId"],
             )
-            endpoint = "by_account"
-        elif "name" in query:
-            parameters = dict(
-                platform=query["platform"].value.lower(), summonerName=query["name"],
+        if "name" in query:
+            name = query["name"].replace(" ", "%20")
+            url = "https://{platform}.api.riotgames.com/lol/summoner/v4/summoners/by-name/{summonerName}".format(
+                platform=query["platform"].value.lower(), summonerName=name,
             )
-            endpoint = "by_name"
-        elif "id" in query:
-            parameters = dict(
+        if "puuid" in query:
+            url = "https://{platform}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{encryptedPUUID}".format(
+                platform=query["platform"].value.lower(), encryptedPUUID=query["puuid"],
+            )
+        if "id" in query:
+            url = "https://{platform}.api.riotgames.com/lol/summoner/v4/summoners/{encryptedSummonerId}".format(
                 platform=query["platform"].value.lower(), encryptedSummonerId=query["id"],
             )
-            endpoint = "by_id"
-        elif "puuid" in query:
-            parameters = dict(
-                platform=query["platform"].value.lower(), encryptedPUUID1=query["puuid"],
-            )
-            endpoint = "by_puuid"
-        else:
-            endpoint = ""
 
         try:
-            data = self._get(
-                _service, endpoint, parameters,
-            )
-        except APIError as error:
+            data = self._get(url, {})
+        except APINotFoundError as error:
             raise APINotFoundError(str(error)) from error
 
-        return SummonerDto(**data)
+        data["region"] = query["platform"].region.value
+        return SummonerDto(data)

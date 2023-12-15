@@ -87,36 +87,33 @@ class LooserUpdateV2Bot(AutoShardedBot):
                     server=server, name=champion.id, url=champion.url
                 )
                 pass
-            elif type == "item":
+            if type == "item":
                 from .staticdata.item import Item
                 item = Item(id=id, image=f"{id}.png")
                 await item.emoji.add_emoji(
                     server=server, name=item.id, url=item.url
                 )
                 pass
-            elif type == "summonerspell":
+            if type == "summonerspell":
                 from .staticdata.summonerspell import SummonerSpell
                 summonerspell = SummonerSpell(id=id)
                 await summonerspell.emoji.add_emoji(
                     server=server, name=summonerspell.id, url=summonerspell.url
                 )
                 pass
-            elif type == "rune":
+            if type == "rune":
                 from .staticdata.rune import Rune
                 rune = Rune(id=id)
                 await rune.emoji.add_emoji(
                     server=server, name=rune.id, url=rune.url
                 )
                 pass
-            elif type == "augment":
+            if type == "augment":
                 from .staticdata.augment import Augment
                 augment = Augment(id=id)
                 await augment.emoji.add_emoji(
                     server=server, name=augment.id, url=augment.url
                 )
-                pass
-            else:
-                LOGGER.warning(f"Unknown type '{type}'")
                 pass
 
         server.to_json()
@@ -139,7 +136,7 @@ class LooserUpdateV2Bot(AutoShardedBot):
                 channel = self.get_channel(self.settings.discord_channel_id)
                 if channel is None:
                     LOGGER.error(f"Unable to find channel with id {self.settings.discord_channel_id}")
-                    LOGGER.warrning(f"Channel is not set, update player will not be sent")
+                    LOGGER.warning(f"Channel is not set, update player will not be sent")
                     self.to_update = False
                     return
 

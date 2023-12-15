@@ -13,6 +13,7 @@ from .staticdata import (
     Augment,
 )
 from ..data import (
+    Continent,
     Region,
     Platform,
     Tier,
@@ -39,23 +40,20 @@ class MatchListData(CoreData):
 class MatchData(CoreData):
     _api = "MatchAPI"
     _dto_type = dto.MatchDto
-    _renamed = {}
-
-    def __call__(self, **kwargs):
-        if "info" in kwargs:
-            self.info = Info(**kwargs.pop("info"))
-        super().__call__(**kwargs)
-        return self
-
-class InfoData(CoreData):
-    _api = None
-    _dto_type = dto.InfoDto
     _renamed = {
+        "gameId": "id",
         "gameMode": "mode",
+        "gameType": "type",
         "queueId": "queue",
+        "platformId": "platform",
     }
 
     def __call__(self, **kwargs):
+        if "gameEndTimestamp" in kwargs:
+            self.end = kwargs.pop("gameEndTimestamp") // 1000
+        if "gameDuration" in kwargs:
+            self.duration = str(datetime.timedelta(seconds=kwargs.pop("gameDuration"))).lstrip("0:")
+
         if "participants" in kwargs:
             self.participants = [
                 Participant(**entry) for entry in (kwargs.pop("participants") or [])
@@ -64,15 +62,11 @@ class InfoData(CoreData):
             self.teams = [
                 Team(**entry) for entry in (kwargs.pop("teams") or [])
             ]
-        if "gameEndTimestamp" in kwargs:
-            self.endTimestamp = kwargs.pop("gameEndTimestamp") // 1000
-        if "gameDuration" in kwargs:
-            self.duration = str(datetime.timedelta(seconds=kwargs.pop("gameDuration"))).lstrip("0:")
+
         super().__call__(**kwargs)
         return self
 
 class ParticipantData(CoreData):
-    _api = None
     _dto_type = dto.ParticipantDto
     _renamed = {
         "goldEarned": "totalGold",
@@ -96,7 +90,6 @@ class ParticipantData(CoreData):
         return self
 
 class TeamData(CoreData):
-    _api = None
     _dto_type = dto.TeamDto
     _renamed = {}
 
@@ -111,12 +104,10 @@ class TeamData(CoreData):
         return self
 
 class BanData(CoreData):
-    _api = None
     _dto_type = dto.BanDto
     _renamed = {}
 
 class ObjectivesData(CoreData):
-    _api = None
     _dto_type = dto.ObjectivesDto
     _renamed = {}
 
@@ -135,7 +126,6 @@ class ObjectivesData(CoreData):
         return self
 
 class ObjectiveData(CoreData):
-    _api = None
     _dto_type = dto.ObjectiveDto
     _renamed = {}
 
@@ -145,152 +135,149 @@ class ObjectiveData(CoreData):
 ##############
 
 
-class Match(LolObject):
-    _data_types = {MatchData}
-
-    def __init__(
-        self,
-        *,
-        region: Union[Region, str],
-        id: int,
-    ):
-        kwargs = {
-            "region": region,
-            "match.id": id,
-        }
-        self.matchId = id
-        super().__init__(**kwargs)
-
-    def __str__(self) -> str:
-        try:
-            region = self._data[MatchData].region
-        except AttributeError:
-            region = "?"
-        try:
-            id = self.matchId
-        except AttributeError:
-            id = "?"
-        return "Match(region={region}, id={id})".format(
-            region=region, id=id,
-        )
-
-    @property
-    def region(self) -> Region:
-        return self._data[MatchData].region
-
-    @property
-    def id(self) -> int:
-        return self.matchId
-
-    @property
-    def info(self) -> "Info":
-        return self._data[MatchData].info
-
 class MatchHistory(LolObject):
     _data_types = {MatchListData}
 
     def __init__(
         self,
         *,
-        region: Union[Region, str],
+        region: Union[Region, str] = None,
         puuid: str,
         queue: Queue = None,
         type: MatchType = None,
-        start: int = 0,
-        count: int = 20,
+        start: int = None,
+        count: int = None,
     ):
         kwargs = {
-            "region": region,
-            "summoner.puuid": puuid,
-            "start": start,
-            "count": count,
-            "queue": queue,
-            "type": type,
+            "region": region, "puuid": puuid,
         }
+        if queue is not None:
+            kwargs["queue"] = queue
+        if type is not None:
+            kwargs["type"] = type
+        if start is not None:
+            kwargs["start"] = start
+        if count is not None:
+            kwargs["count"] = count
         super().__init__(**kwargs)
 
-    def __getitem__(self, item: Union[str, int]) -> Match:
+    def __getitem__(self, item: Union[str, int]) -> "Match":
         return Match(region=self.region, id=self._data[MatchListData].match_ids[item])
 
-    def __str__(self) -> str:
-        history = "\n\t".join(str(match) for match in self)
-        return f"MatchHistory[\n\t{history}\n]"
+    def __call__(self, **kwargs) -> "MatchHistory":
+        kwargs.setdefault("queue", self.queue)
+        kwargs.setdefault("type", self.match_type)
+        kwargs.setdefault("start", self.start)
+        kwargs.setdefault("count", self.count)
+        return MatchHistory(**kwargs)
 
     @property
-    def ids(self) -> List[int]:
-        return self._data[MatchListData].match_ids
+    def continent(self) -> Continent:
+        return self.region.continent
 
     @property
     def region(self) -> Region:
         return self._data[MatchListData].region
 
     @property
-    def start(self) -> Optional[int]:
+    def platform(self) -> Platform:
+        return Platform.from_region(self.region)
+
+    @property
+    def queue(self) -> Queue:
+        return Queue(self._data[MatchListData].queue)
+
+    @property
+    def match_type(self) -> MatchType:
+        return MatchType(self._data[MatchListData].type)
+
+    @property
+    def start(self) -> Union[int, None]:
         try:
             return self._data[MatchListData].start
         except AttributeError:
             return None
 
     @property
-    def count(self) -> Optional[int]:
+    def count(self) -> Union[int, None]:
         try:
             return self._data[MatchListData].count
         except AttributeError:
             return None
 
-    @property
-    def queue(self) -> Queue:
-        try:
-            return Queue(self._data[MatchListData].queue)
-        except ValueError:
-            return None
+class Match(LolObject):
+    _data_types = {MatchData}
 
-    @property
-    def match_type(self) -> MatchType:
-        try:
-            return MatchType(self._data[MatchListData].type)
-        except ValueError:
-            return None
-
-class Info(LolObject):
-    _data_types = {InfoData}
-
-    def __init__(self, **kwargs):
+    def __init__(
+        self,
+        *,
+        region: Union[Region, str] = None,
+        platform: Union[Platform, str] = None,
+        id: str = None,
+    ):
+        if isinstance(platform, str):
+            platform = Platform(platform)
+        if isinstance(region, str):
+            region = Region(region)
+        if platform is None:
+            platform = region.platform
+        kwargs = {
+            "platform": platform, "id": id,
+        }
         super().__init__(**kwargs)
 
     def __str__(self) -> str:
-        queue = self.queue if self.queue else "?"
         try:
-            mode = self._data[InfoData].mode
+            id = self._data[MatchData].id
         except AttributeError:
-            mode = "?"
+            id = "?"
         try:
-            duration = self._data[InfoData].duration
+            region = self._data[MatchData].region
         except AttributeError:
-            duration = "?"
-        try:
-            endTimestamp = self._data[InfoData].endTimestamp
-        except AttributeError:
-            endTimestamp = "?"
-        return "Info(mode={mode}, queue={queue}, duration={duration}, endTimestamp={endTimestamp})".format(
-            mode=mode, queue=queue, duration=duration, endTimestamp=endTimestamp,
+            region = "?"
+        return "Match(id={id}, region={region})".format(
+            id=id, region=region,
         )
+
+    @property
+    def continent(self) -> Continent:
+        return self.platform.continent
+    
+    @property
+    def region(self) -> Region:
+        return self.platform.region
+
+    @property
+    def platform(self) -> Platform:
+        return Platform(self._data[MatchData].platform)
+
+    @property
+    def id(self) -> str:
+        return self._data[MatchData].id
+
+    @property
+    def queue(self) -> Queue:
+        return Queue.from_id(self._data[InfoData].queue)
+
+    @property
+    def type (self) -> MatchType:
+        return MatchType(self._data[InfoData].type)
+
+    @property
+    def game_type(self) -> GameType:
+        return GameType(self._data[InfoData].type)
+
+    @property
+    def mode(self) -> GameMode:
+        return GameMode(self._data[InfoData].mode)
 
     @property
     def duration(self) -> int:
         return self._data[InfoData].duration
 
     @property
-    def end_timestamp(self) -> int:
+    def end(self) -> int:
         return self._data[InfoData].endTimestamp
-
-    @property
-    def game_mode(self) -> GameMode:
-        return GameMode(self._data[InfoData].mode)
-
-    @property
-    def queue(self) -> Queue:
-        return Queue.from_id(self._data[InfoData].queue)
 
     @property
     def participants(self) -> List["Participant"]:
@@ -305,21 +292,6 @@ class Participant(LolObject):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-
-    def __str__(self) -> str:
-        position = self.position if self.position else "?"
-        role = self.role if self.role else "?"
-        try:
-            name = self._data[ParticipantData].summonerName
-        except AttributeError:
-            name = "?"
-        try:
-            teamId = self._data[ParticipantData].teamId
-        except AttributeError:
-            teamId = "?"
-        return "Participant(name={name}, teamId={teamId}, position={position}, role={role})".format(
-            name=name, teamId=teamId, position=position, role=role,
-        )
 
     @property
     def assists(self) -> int:
@@ -431,19 +403,6 @@ class Team(LolObject):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def __str__(self) -> str:
-        try:
-            id = self._data[TeamData].teamId
-        except AttributeError:
-            id = "?"
-        try:
-            win = self._data[TeamData].win
-        except AttributeError:
-            win = "?"
-        return "Team(id={id}, win={win})".format(
-            id=id, win=win,
-        )
-
     @property
     def bans(self) -> List["Ban"]:
         return self._data[TeamData].bans
@@ -466,12 +425,6 @@ class Ban(LolObject):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def __str__(self) -> str:
-        champion = self.champion if self.champion else "?"
-        return "Ban(champion={champion})".format(
-            champion=champion,
-        )
-
     @property
     def champion(self) -> Champion:
         return Champion(key=self._data[BanData].championId)
@@ -482,15 +435,6 @@ class Objective(LolObject):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def __str__(self) -> str:
-        try:
-            kills = self._data[ObjectiveData].kills
-        except AttributeError:
-            kills = "?"
-        return "(kills={kills})".format(
-            kills=kills,
-        )
-
     @property
     def kills(self) -> int:
         return self._data[ObjectiveData].kills
@@ -500,31 +444,6 @@ class Objectives(LolObject):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-
-    def __str__(self) -> str:
-        try:
-            baron = self._data[ObjectivesData].baron
-        except AttributeError:
-            baron = "?"
-        try:
-            dragon = self._data[ObjectivesData].dragon
-        except AttributeError:
-            dragon = "?"
-        try:
-            inhibitor = self._data[ObjectivesData].inhibitor
-        except AttributeError:
-            inhibitor = "?"
-        try:
-            riftHerald = self._data[ObjectivesData].riftHerald
-        except AttributeError:
-            riftHerald = "?"
-        try:
-            tower = self._data[ObjectivesData].tower
-        except AttributeError:
-            tower = "?"
-        return "Objectives(baron={baron}, dragon={dragon}, inhibitor={inhibitor}, riftHerald={riftHerald}, tower={tower})".format(
-            baron=baron, dragon=dragon, inhibitor=inhibitor, riftHerald=riftHerald, tower=tower,
-        )
 
     @property
     def baron(self) -> Objective:
