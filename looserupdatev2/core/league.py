@@ -124,11 +124,8 @@ class LeagueEntries(LolObject):
     _data_types = {LeagueEntriesData}
 
     def __init__(
-        self,
-        *,
-        summoner: Summoner
+        self, summoner: Summoner
     ):
-        self.__summoner = summoner
         kwargs = {
             "region": summoner.region, "id": summoner.id,
         }

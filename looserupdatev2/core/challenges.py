@@ -71,17 +71,13 @@ class CategoryPointsData(CoreData):
 class PlayerInfo(LolObject):
     _data_types = {PlayerInfoData}
 
-    def __init__(self, *, summoner: Summoner):
-        self.__summoner__ = summoner
+    def __init__(
+        self, summoner: Summoner
+    ):
         kwargs = {
-            "region": summoner.region,
-            "summoner.puuid": summoner.puuid,
+            "region": summoner.region, "puuid": summoner.puuid,
         }
         super().__init__(**kwargs)
-
-    @property
-    def summoner(self) -> Summoner:
-        return self.__summoner__
 
     @property
     def total_points(self) -> int:

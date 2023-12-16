@@ -137,7 +137,7 @@ class Summoner(LolObject):
     def account(self) -> "Account":
         from .account import Account
 
-        return Account(puuid=self.puuid, continent=self.continent)
+        return Account(puuid=self.puuid, region=self.region)
 
     @property
     def challenges(self) -> "Challenges":

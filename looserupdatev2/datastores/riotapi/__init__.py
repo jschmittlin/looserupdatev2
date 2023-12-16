@@ -8,14 +8,19 @@ def _default_services(
     api_key: str,
 ) -> Dict[RiotAPIService, str]:
     from ..common import HTTPClient
+    from .account import AccountApi
     from .challenges import ChallengesApi
     from .championmastery import ChampionMasteryApi
     from .league import LeagueApi
-    from .summoner import SummonerApi
     from .match import MatchApi
+    from .summoner import SummonerApi
 
     client = HTTPClient()
     services = {
+        "AccountAPI": AccountApi(
+            api_key=api_key,
+            http_client=client,
+        ),
         "ChallengesAPI": ChallengesApi(
             api_key=api_key,
             http_client=client,

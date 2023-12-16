@@ -1,4 +1,5 @@
 from .staticdata import (
+    Augment,
     ChallengeTitle,
     Champion,
     Item,
@@ -6,7 +7,6 @@ from .staticdata import (
     ProfileIcon,
     Rune,
     SummonerSpell,
-    Augment,
 )
 from .account import Account
 from .challenges import PlayerInfo

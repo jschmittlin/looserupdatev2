@@ -117,7 +117,6 @@ class Server:
         LOGGER.info(f"Deleted all emojis for type {type}")
 
 
-
 class EmojiObject(object):
     _undefined = set()
 

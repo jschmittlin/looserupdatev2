@@ -45,9 +45,7 @@ class Items(LolObject):
     _data_types = {ItemListData}
     
     def __init__(
-        self,
-        *,
-        included_data: List[str] = None,
+        self, included_data: List[str] = None,
     ):
         self._data = {_type: None for _type in self._data_types}
         results = {_type: {} for _type in self._data_types}

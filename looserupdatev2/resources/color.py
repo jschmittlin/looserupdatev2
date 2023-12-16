@@ -38,13 +38,13 @@ class Color:
         )
 
     @classmethod
-    def discord_preset_player(cls, gameName: str, tagLine: str) -> str:
+    def discord_preset_player(cls, game_name: str, tag_line: str) -> str:
         return (
             f"```ansi\n"
             f"{cls.ansi_white}{cls.ansi_bold}"
-            f"{gameName} "
+            f"{game_name} "
             f"{cls.ansi_gray}"
-            f"#{tagLine}"
+            f"#{tag_line}"
             f"{cls.ansi_reset}"
             f"```"
         )

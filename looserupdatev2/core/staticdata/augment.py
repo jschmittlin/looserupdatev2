@@ -39,9 +39,7 @@ class Augment(LolObject):
     _data_types = {AugmentData, AugmentEmoji}
 
     def __init__(
-        self,
-        *,
-        id: int = None
+        self, id: int = None
     ):
         self._data = {_type: None for _type in self._data_types}
         results = {_type: {} for _type in self._data_types}

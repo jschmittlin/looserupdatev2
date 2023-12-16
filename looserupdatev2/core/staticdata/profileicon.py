@@ -25,9 +25,7 @@ class ProfileIcon(LolObject):
     _data_types = {ProfileIconData}
 
     def __init__(
-        self,
-        *,
-        id: int = None,
+        self, id: int = None,
     ):
         kwargs = {}
         if id is not None:

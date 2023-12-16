@@ -1,4 +1,4 @@
-from typing import Mapping, Optional, List, Any
+from typing import Mapping, Any, Optional, List, Tuple
 import logging
 
 from .common import CoreData, LolObject
@@ -63,6 +63,8 @@ class Player(LolObject):
     def to_dict(self) -> Mapping[str, Any]:
         return {
             "region": self._data[PlayerData].region,
+            "gameName": self._data[PlayerData].gameName,
+            "tagLine": self._data[PlayerData].tagLine,
             "id": self._data[PlayerData].id,
             "puuid": self._data[PlayerData].puuid,
             "name": self._data[PlayerData].name,
@@ -113,7 +115,7 @@ class Player(LolObject):
                 new_description = f"PROMOTE TO {new_rank}"
 
         # Update player data
-        self.name, self.profile_icon = summoner.name, summoner.profile_icon.id
+        self.game_name, self.tag_line, self.name, self.profile_icon = summoner.account.game_name, summoner.account.tag_line, summoner.name, summoner.profile_icon.id
         self.tier, self.division, self.league_points, self.match, self.description = new_tier.value, new_division.value, new_lp, match_id, new_description
         return True
 
@@ -141,65 +143,38 @@ class Player(LolObject):
     def game_name(self) -> str:
         return self._data[PlayerData].gameName
 
-    @game_name.setter
-    def game_name(self, value: str) -> None:
-        self._data[PlayerData].gameName = value
-
     @property
     def tag_line(self) -> str:
         return self._data[PlayerData].tagLine
-
-    @tag_line.setter
-    def tag_line(self, value: str) -> None:
-        self._data[PlayerData].tagLine = value
 
     @property
     def name(self) -> str:
         return self._data[PlayerData].name
 
-    @name.setter
-    def name(self, value: str) -> None:
-        self._data[PlayerData].name = value
-
     @property
     def profile_icon(self) -> ProfileIcon:
         return ProfileIcon(id=self._data[PlayerData].profileIconId)
-
-    @profile_icon.setter
-    def profile_icon(self, value: int) -> None:
-        self._data[PlayerData].profileIconId = value
 
     @property
     def league_points(self) -> int:
         return self._data[PlayerData].leaguePoints
 
-    @league_points.setter
-    def league_points(self, value: int) -> None:
-        self._data[PlayerData].leaguePoints = value
-
     @property
     def wins(self) -> int:
-        return self._data[PlayerData].wins
-
-    @wins.setter
-    def wins(self, value: int) -> None:
-        self._data[PlayerData].wins = value
+        if self._data[PlayerData].wins:
+            return self._data[PlayerData].wins
+        else:
+            return 0
 
     @property
     def losses(self) -> int:
-        return self._data[PlayerData].losses
-
-    @losses.setter
-    def losses(self, value: int) -> None:
-        self._data[PlayerData].losses = value
+        if self._data[PlayerData].losses:
+            return self._data[PlayerData].losses
+        return 0
 
     @property
     def description(self) -> str:
         return self._data[PlayerData].description
-
-    @description.setter
-    def description(self, value: str) -> None:
-        self._data[PlayerData].description = value
 
     @property
     def tier(self) -> Tier:
@@ -208,20 +183,12 @@ class Player(LolObject):
         except ValueError:
             return Tier.unranked
 
-    @tier.setter
-    def tier(self, value: str) -> None:
-        self._data[PlayerData].tier = value
-
     @property
     def division(self) -> Division:
         try:
             return Division(self._data[PlayerData].division)
         except ValueError:
             return Division.one
-
-    @division.setter
-    def division(self, value: str) -> None:
-        self._data[PlayerData].division = value
 
     @property
     def rank(self) -> Rank:
@@ -231,13 +198,55 @@ class Player(LolObject):
     def match(self) -> Match:
         return Match(region=self.region, id=self._data[PlayerData].matchId)
 
-    @match.setter
-    def match(self, value: int) -> None:
-        self._data[PlayerData].matchId = value
-
     @property
     def summoner(self) -> Summoner:
         return Summoner(region=self.region, puuid=self.puuid)
+
+    # Setter methods
+
+    @game_name.setter
+    def game_name(self, value: str) -> None:
+        self._data[PlayerData].gameName = value
+
+    @tag_line.setter
+    def tag_line(self, value: str) -> None:
+        self._data[PlayerData].tagLine = value
+
+    @name.setter
+    def name(self, value: str) -> None:
+        self._data[PlayerData].name = value
+
+    @profile_icon.setter
+    def profile_icon(self, value: int) -> None:
+        self._data[PlayerData].profileIconId = value
+
+    @league_points.setter
+    def league_points(self, value: int) -> None:
+        self._data[PlayerData].leaguePoints = value
+
+    @wins.setter
+    def wins(self, value: int) -> None:
+        self._data[PlayerData].wins = value
+
+    @losses.setter
+    def losses(self, value: int) -> None:
+        self._data[PlayerData].losses = value
+
+    @description.setter
+    def description(self, value: str) -> None:
+        self._data[PlayerData].description = value
+
+    @tier.setter
+    def tier(self, value: str) -> None:
+        self._data[PlayerData].tier = value
+
+    @division.setter
+    def division(self, value: str) -> None:
+        self._data[PlayerData].division = value
+
+    @match.setter
+    def match(self, value: int) -> None:
+        self._data[PlayerData].matchId = value
 
 
 class PlayerList(LolObject):
@@ -265,16 +274,23 @@ class PlayerList(LolObject):
             "data": [player.to_dict() for player in self.data],
         }
 
-    def get(self, name: str) -> Player:
+    def get(self, game_name: str, tag_line: str) -> Player:
         for player in self.data:
-            if player.name == name:
+            if player.game_name == game_name and player.tag_line == tag_line:
                 return player
-        raise ValueError(f"'{name}' - data not found")
+        raise ValueError(f"'{game_name} #{tag_line}' - data not found")
 
     def add(self, summoner: Summoner) -> Player:
-        name = summoner.name
-        if name in self.get_player_names():
-            raise ValueError(f"'{name}' - already managed")
+        if len(self.data) >= self._max_size:
+            raise ValueError(f"max size reached ({self._max_size})")
+
+        account = summoner.account
+        game_name = account.game_name
+        tag_line = account.tag_line
+        pair = (game_name, tag_line)
+
+        if pair in self.get_player_names():
+            raise ValueError(f"'{game_name} #{tag_line}' - already managed")
 
         try:
             match_id = MatchHistory(region=summoner.region, puuid=summoner.puuid, queue=Queue.ranked_solo_five, count=1).ids[0]
@@ -294,6 +310,8 @@ class PlayerList(LolObject):
 
         player = Player(
             region=summoner.region.value,
+            gameName=game_name,
+            tagLine=tag_line,
             id=summoner.id,
             puuid=summoner.puuid,
             name=summoner.name,
@@ -311,11 +329,11 @@ class PlayerList(LolObject):
 
         return player
 
-    def remove(self, name: str) -> Player:
-        player = self.get(name)
+    def remove(self, game_name: str, tag_line: str) -> Player:
+        player = self.get(game_name, tag_line)
         self.data.remove(player)
         self.to_json()
         return player
 
-    def get_player_names(self) -> List[str]:
-        return [player.name for player in self.data]
+    def get_player_names(self) -> List[Tuple[str, str]]:
+        return [(player.game_name, player.tag_line) for player in self.data]

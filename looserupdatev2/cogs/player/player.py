@@ -52,9 +52,9 @@ class Player(commands.Cog):
         self, interaction: discord.Interaction, current: str,
     ) -> List[app_commands.Choice[str]]:
         return [
-            app_commands.Choice(name=f"{player.name} #{player.region.value}", value=player.name)
+            app_commands.Choice(name=f"{player.game_name} #{player.tag_line}", value=(player.game_name, player.tag_line))
             for player in get_player_list()
-            if current.lower() in player.name.lower()
+            if current.lower() in player.game_name.lower()
         ]
 
     @app_commands.command(name="remove-player", description="Remove player from the update list.")

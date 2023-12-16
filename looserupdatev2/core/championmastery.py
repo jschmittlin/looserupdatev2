@@ -98,8 +98,9 @@ class ChampionMastery(LolObject):
 class ChampionMasteries(LolObject):
     _data_types = {ChampionMasteryListData, ChampionMasteryScoreData}
 
-    def __init__(self, *, summoner: Summoner):
-        self.__summoner = summoner
+    def __init__(
+        self, summoner: Summoner
+    ):
         kwargs = {
             "region": summoner.region, "puuid": summoner.puuid
         }

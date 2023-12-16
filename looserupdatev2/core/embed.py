@@ -4,7 +4,7 @@ import discord
 from .summoner import Summoner
 from .match import Match
 from .player import Player, PlayerList
-from ..data import Region, Queue, Tier, Lane
+from ..data import Region, Platform, Queue, Tier, Lane
 
 from ..resources import Icon, Color 
 from ..resources.emoji import blank, Mastery, Match
@@ -13,28 +13,34 @@ from ..resources.emoji import blank, Mastery, Match
 space = " \u200b "
 split = " \u200b • \u200b "
 
-def blitz_profile(name: str, region: Region) -> str:
-    return "https://blitz.gg/lol/profile/{region}/{name}".format(
-        region=str(region.platform).lower(), name=name.replace(' ', '%20'),
-    )
-
-def blitz_match(name: str, tag: str, region: Region, match_id: str) -> str:
+def blitz_profile(game_name: str, tag_line: str, platform: Platform) -> str:
     try:
-        return "https://blitz.gg/lol/match/{region}/{name}-{tag}/{matchId}".format(
-            region=str(region.platform).lower(), name=name.replace(' ', '%20'), tag=tag, matchId=match_id.split('_')[1],
+        return "https://blitz.gg/lol/profile/{platform}/{game_name}-{tag_line}".format(
+            platform=platform.value.lower(), game_name=game_name.replace(' ', '%20'), tag_line=tag_line,
         )
-    except NoneType:
+    except Exception:
         return "https://blitz.gg"
 
-def opgg(name: str, region: str) -> str:
-    return "https://www.op.gg/summoners/{region}/{name}".format(
-        region=str(region.platform).lower(), name=name.replace(' ', '%20'),
-    )
+def blitz_match(game_name: str, tag_line: str, platform: Platform, id: str) -> str:
+    try:
+        return "https://blitz.gg/lol/match/{platform}/{game_name}-{tag_line}/{id}".format(
+            platform=platform.value.lower(), game_name=game_name.replace(' ', '%20'), tag_line=tag_line, id=id,
+        )
+    except Exception:
+        return "https://blitz.gg"
+
+def opgg(game_name: str, tag_line: str, region: str) -> str:
+    try:
+        return "https://www.op.gg/summoners/{region}/{game_name}-{tag_line}".format(
+            region=region.value.lower(), game_name=game_name.replace(' ', '%20'), tag_line=tag_line,
+        )
+    except Exception:
+        return "https://www.op.gg"
 
 def get_winrate(wins: int, losses: int) -> Union[int, str]:
     try:
         return round(wins / (wins + losses) * 100)
-    except (ZeroDivisionError, TypeError):
+    except ZeroDivisionError:
         return "?"
 
 def get_kda(kills: int, deaths: int, assists: int) -> Union[int, str]:
@@ -146,7 +152,7 @@ class Embed:
     def player_add(player: Player) -> discord.Embed:
         return discord.Embed(
             description=(
-                f"{Color.discord_preset_player(gameName=player.name, tagLine=player.region.value)}\n"
+                f"{Color.discord_preset_player(game_name=player.game_name, tag_line=player.tag_line)}\n"
                 f"**Add to the update list.**{blank * 5}"
             ),
             color=Color.default,
@@ -160,7 +166,7 @@ class Embed:
     def player_remove(player: Player) -> discord.Embed:
         return discord.Embed(
             description=(
-                f"{Color.discord_preset_player(gameName=player.name, tagLine=player.region.value)}\n"
+                f"{Color.discord_preset_player(game_name=player.game_name, tag_line=player.tag_line)}\n"
                 f"**Remove to the update list.**{blank * 5}"
             ),
             color=Color.default,
@@ -194,7 +200,7 @@ class Embed:
 
         players_value = ''.join([
             f"```ansi\n"
-            f"{Color.ansi_white}{Color.ansi_bold}{player.name} {Color.ansi_gray}#{player.region.value}\n"
+            f"{Color.ansi_white}{Color.ansi_bold}{player.game_name} {Color.ansi_gray}#{player.tag_line}\n"
             f"{f'{player.tier.color}{player.tier} {player.division.value} {Color.ansi_reset}(Solo/Duo)' if player.tier else f'{Tier.unranked.color}{Tier.unranked}'}"
             f"```"
             for player in players
@@ -238,9 +244,9 @@ class Embed:
             description=embed_description,
             color=Color.victory if match_player.win else Color.defeat,
         ).set_author(
-            name=f"{player.name}{space}#{player.region.value}",
+            name=f"{player.game_name}{space}#{player.tag_line}",
             icon_url=player.profile_icon.url,
-            url=blitz_profile(player.name, player.region),
+            url=blitz_profile(game_name=player.game_name, tag_line=player.tag_line, platform=player.platform),
         )
 
         Embed.match_mini(embed=embed, puuid=player.puuid, match=match)
@@ -279,9 +285,9 @@ class Embed:
             ),
             color=Color.default,
         ).set_author(
-            name=f"{summoner.name}{space}#{summoner.region.value}",
+            name=f"{summoner.account.game_name}{space}#{summoner.account.tag_line}",
             icon_url=summoner.profile_icon.url,
-            url=blitz_profile(summoner.name, summoner.region),
+            url=blitz_profile(game_name=summoner.account.game_name, tag_line=summoner.account.tag_line, platform=summoner.platform),
         ).set_thumbnail(
             url=summoner.profile_icon.url,
         ).set_footer(
@@ -611,7 +617,7 @@ class Embed:
             description=(
                 f"# {queue.emoji_victory if player.win else queue.emoji_defeat}{space}{win_text}\n"
                 f"**{queue.map}{split}{queue.description}{split}{match.duration}{split}<t:{match.end}:d>{split}"
-                f"||[{match.id.split('_')[1]}]({blitz_match(player.riot_game_name, player.riot_tag_line, match.region, match.id)})||**\n"
+                f"||[{match.id.split('_')[1]}]({blitz_match(player.riot_game_name, player.riot_tag_line, match.platform, match.id)})||**\n"
                 f"```ansi\n{Color.ansi_gray}—————————————————————————————————————————————————————————————```"
             ),
             color=Color.victory if player.win else Color.defeat,

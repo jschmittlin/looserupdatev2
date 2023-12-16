@@ -114,6 +114,7 @@ class LolObject(object):
             raise ValueError(f"API for {api_name} not found")
 
         api_methods = {
+            "AccountAPI": lambda kwargs: api.get_account(kwargs),
             "SummonerAPI": lambda kwargs: api.get_summoner(kwargs),
             "LeagueAPI": lambda kwargs: api.get_league_entries_by_summoner(kwargs),
             "ChampionMasteryAPI": lambda kwargs: (
