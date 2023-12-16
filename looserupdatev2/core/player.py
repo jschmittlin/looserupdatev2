@@ -80,7 +80,7 @@ class Player(LolObject):
         summoner = Summoner(region=self.region, puuid=self.puuid)
 
         try:
-            match_id = MatchHistory(region=summoner.region, puuid=summoner.puuid, queue=Queue.ranked_solo_five, count=1)[0]
+            match_id = MatchHistory(region=summoner.region, puuid=summoner.puuid, queue=Queue.ranked_solo_five, count=1).ids[0]
         except IndexError:
             LOGGER.debug(f"'{self.name}' - match not found")
             return False

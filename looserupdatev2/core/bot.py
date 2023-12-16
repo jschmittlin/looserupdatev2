@@ -36,7 +36,7 @@ class LooserUpdateV2Bot(AutoShardedBot):
         self.change_activity_loop.start()
         self.update_ddragon_cache_loop.start()
         self.add_undefined_emojis_loop.start()
-        self.update_players_loop.start()
+        # self.update_players_loop.start() # have to be started after the first ddragon cache update
 
     @tasks.loop(minutes=20)
     async def change_activity_loop(self) -> None:
@@ -68,6 +68,9 @@ class LooserUpdateV2Bot(AutoShardedBot):
             else:
                 ddragon["cache"][file] = get_data_dragon(file=file)
             await asyncio.sleep(1) 
+
+        if not self.update_players_loop.is_running():
+            self.update_players_loop.start()
 
     @tasks.loop(minutes=1)
     async def add_undefined_emojis_loop(self) -> None:
@@ -149,10 +152,6 @@ class LooserUpdateV2Bot(AutoShardedBot):
 
     @change_activity_loop.before_loop
     async def before_change_activity_loop(self):
-        await self.wait_until_ready()
-
-    @update_ddragon_cache_loop.before_loop
-    async def before_update_ddragon_cache_loop(self):
         await self.wait_until_ready()
 
     @add_undefined_emojis_loop.before_loop

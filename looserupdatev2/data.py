@@ -349,7 +349,7 @@ class Rank:
         self.division = division
 
     def __str__(self) -> str:
-        return "<{} {}>".format(self.tuple[0], self.tuple[1])
+        return "{} {}".format(self.tuple[0], self.tuple[1])
 
     def __eq__(self, other) -> bool:
         return self.tuple == other.tuple

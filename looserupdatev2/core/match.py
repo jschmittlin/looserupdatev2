@@ -205,6 +205,10 @@ class MatchHistory(LolObject):
         except AttributeError:
             return None
 
+    @property
+    def ids(self) -> List[str]:
+        return self._data[MatchListData].match_ids
+
 class Match(LolObject):
     _data_types = {MatchData}
 
@@ -226,19 +230,6 @@ class Match(LolObject):
         }
         super().__init__(**kwargs)
 
-    def __str__(self) -> str:
-        try:
-            id = self._data[MatchData].id
-        except AttributeError:
-            id = "?"
-        try:
-            region = self._data[MatchData].region
-        except AttributeError:
-            region = "?"
-        return "Match(id={id}, region={region})".format(
-            id=id, region=region,
-        )
-
     @property
     def continent(self) -> Continent:
         return self.platform.continent
@@ -257,35 +248,35 @@ class Match(LolObject):
 
     @property
     def queue(self) -> Queue:
-        return Queue.from_id(self._data[InfoData].queue)
+        return Queue.from_id(self._data[MatchData].queue)
 
     @property
     def type (self) -> MatchType:
-        return MatchType(self._data[InfoData].type)
+        return MatchType(self._data[MatchData].type)
 
     @property
     def game_type(self) -> GameType:
-        return GameType(self._data[InfoData].type)
+        return GameType(self._data[MatchData].type)
 
     @property
     def mode(self) -> GameMode:
-        return GameMode(self._data[InfoData].mode)
+        return GameMode(self._data[MatchData].mode)
 
     @property
     def duration(self) -> int:
-        return self._data[InfoData].duration
+        return self._data[MatchData].duration
 
     @property
     def end(self) -> int:
-        return self._data[InfoData].endTimestamp
+        return self._data[MatchData].end
 
     @property
     def participants(self) -> List["Participant"]:
-        return self._data[InfoData].participants
+        return self._data[MatchData].participants
 
     @property
     def teams(self) -> List["Team"]:
-        return self._data[InfoData].teams
+        return self._data[MatchData].teams
 
 class Participant(LolObject):
     _data_types = {ParticipantData}

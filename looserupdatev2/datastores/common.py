@@ -17,7 +17,6 @@ class HTTPError(RuntimeError):
         super().__init__(message)
         self.code = code
         self.response_headers = response_headers or {}
-        LOGGER.error(f"HTTPError: {code} {message}")
 
 class HTTPClient(object):
     @staticmethod
@@ -35,7 +34,7 @@ class HTTPClient(object):
                 if "Accept-Encoding" not in headers:
                     request_headers["Accept-Encoding"] = "gzip"
 
-            LOGGER.info(f"Making request to {url}")
+            LOGGER.info(f"Request: {url}")
             return requests.get(url=url, headers=request_headers)
 
     def get(

@@ -34,7 +34,7 @@ def opgg(name: str, region: str) -> str:
 def get_winrate(wins: int, losses: int) -> Union[int, str]:
     try:
         return round(wins / (wins + losses) * 100)
-    except ZeroDivisionError:
+    except (ZeroDivisionError, TypeError):
         return "?"
 
 def get_kda(kills: int, deaths: int, assists: int) -> Union[int, str]:
@@ -210,7 +210,8 @@ class Embed:
 
     @staticmethod
     def player_update(player: Player) -> discord.Embed:
-        match_player = next((p for p in player.match.info.participants if p.puuid == player.puuid), player.match.info.participants[0])
+        match = player.match
+        match_player = next((p for p in match.participants if p.puuid == player.puuid), match.participants[0])
 
         player_rank = f"{player.tier} {player.division.value}" if player.tier else f"{Tier.unranked}"
         player_rank_color = player.tier.color if player.tier else Tier.unranked.color
@@ -222,7 +223,7 @@ class Embed:
         win_loss = f"{player.wins}W - {player.losses}L"
 
         rank_padding = 61 - (len(player_rank) + len(league_points) + len(player.description) + 3)
-        win_padding = 61 - (len(win_loss_text) + len(winrate_text))
+        win_padding = 61 - (len(win_loss) + len(winrate))
 
         embed_description = (
             f"```ansi\n"
@@ -242,7 +243,7 @@ class Embed:
             url=blitz_profile(player.name, player.region),
         )
 
-        Embed.match_mini(embed=embed, puuid=player.puuid, match=player.match)
+        Embed.match_mini(embed=embed, puuid=player.puuid, match=match)
 
         return embed
 
@@ -339,8 +340,8 @@ class Embed:
         return embed
 
     @staticmethod
-    def mini_classic_aram(embed: discord.Embed, info: "Info", player: "Participant") -> None:
-        queue = info.queue
+    def mini_classic_aram(embed: discord.Embed, match: "Match", player: "Participant") -> None:
+        queue = match.queue
         win = Match.remake if player.remake else (Match.victory if player.win else Match.defeat)
         map_emoji = queue.emoji_victory if player.win else queue.emoji_defeat
         items_emoji = " ".join(item.get_emoji for item in player.items)
@@ -374,8 +375,8 @@ class Embed:
         embed.add_field(
             name=f"**•{space}{queue.map}**",
             value=(
-                f"**{info.duration}{split}"
-                f"<t:{info.end_timestamp}:R>**\n"
+                f"**{match.duration}{split}"
+                f"<t:{match.end}:R>**\n"
                 f"{Match.minions} **{player.creep_score:,}**"
                 f"{blank}{Match.gold} **{player.gold:,}**"
             ),
@@ -383,8 +384,8 @@ class Embed:
         )
 
     @staticmethod
-    def mini_cherry(embed: discord.Embed, info: "Info", player: "Participant") -> None:
-        queue = info.queue
+    def mini_cherry(embed: discord.Embed, match: "Match", player: "Participant") -> None:
+        queue = match.queue
         
         field_2_blank = spacing_lane(Lane.fill) + spacing_queue(queue)
         items_emoji = " ".join(item.get_emoji for item in player.items)
@@ -413,7 +414,7 @@ class Embed:
             inline=True,
         )
         embed.add_field(
-            name=f"**•{space}{info.duration}{split}<t:{info.end_timestamp}:R>**",
+            name=f"**•{space}{match.duration}{split}<t:{match.end}:R>**",
             value=(
                 f"{augments_emoji}\n"
                 f"{Match.minions} **{player.creep_score:,}**"
@@ -424,15 +425,14 @@ class Embed:
 
     @staticmethod
     def match_mini(embed: discord.Embed, puuid: str, match: Match) -> None:
-        info = match.info
-        queue = info.queue
+        queue = match.queue
 
-        player = next((p for p in info.participants if p.puuid == puuid), info.participants[0])
+        player = next((p for p in match.participants if p.puuid == puuid), match.participants[0])
 
         if queue == Queue.cherry:
-            Embed.mini_cherry(embed=embed, info=info, player=player)
+            Embed.mini_cherry(embed=embed, match=match, player=player)
         else:
-            Embed.mini_classic_aram(embed=embed, info=info, player=player)
+            Embed.mini_classic_aram(embed=embed, match=match, player=player)
 
     @staticmethod
     def profile_match_history(summoner: Summoner) -> discord.Embed:
@@ -512,17 +512,17 @@ class Embed:
         )
 
     @staticmethod
-    def classic_aram_match(embed: discord.Embed, info: "Info") -> None:
-        team_1_bans = " ".join(ban.champion.get_emoji for ban in info.teams[0].bans)
-        team_2_bans = " ".join(ban.champion.get_emoji for ban in info.teams[1].bans)
+    def classic_aram_match(embed: discord.Embed, match: "Match") -> None:
+        team_1_bans = " ".join(ban.champion.get_emoji for ban in match.teams[0].bans)
+        team_2_bans = " ".join(ban.champion.get_emoji for ban in match.teams[1].bans)
 
         if team_1_bans or team_2_bans:
             embed.add_field(
                 name="", value=f"{team_1_bans}{blank * 15}{team_1_bans}", inline=False,
             )
 
-        Embed.classic_team(embed=embed, team_id=100, team=info.teams[0], participants=info.participants[:5])
-        Embed.classic_team(embed=embed, team_id=200, team=info.teams[1], participants=info.participants[5:])
+        Embed.classic_team(embed=embed, team_id=100, team=match.teams[0], participants=match.participants[:5])
+        Embed.classic_team(embed=embed, team_id=200, team=match.teams[1], participants=match.participants[5:])
 
     @staticmethod
     def cherry_team(embed: discord.Embed, participants: List["Participant"]) -> None:
@@ -579,21 +579,21 @@ class Embed:
         )
 
     @staticmethod
-    def cherry_match(embed: discord.Embed, info: "Info") -> None:
-        bans = " ".join(ban.champion.get_emoji for ban in info.teams[0].bans)
+    def cherry_match(embed: discord.Embed, match: "Match") -> None:
+        bans = " ".join(ban.champion.get_emoji for ban in match.teams[0].bans)
 
         embed.add_field(
             name="", value=f"{bans}", inline=False,
         )
 
         teams = [
-            (info.participants[0], info.participants[1]),
-            (info.participants[2], info.participants[3]),
-            (info.participants[4], info.participants[5]),
-            (info.participants[6], info.participants[7]),
+            (match.participants[0], match.participants[1]),
+            (match.participants[2], match.participants[3]),
+            (match.participants[4], match.participants[5]),
+            (match.participants[6], match.participants[7]),
         ]
 
-        placements = set(participant.subteam_placement for participant in info.participants)
+        placements = set(participant.subteam_placement for participant in match.participants)
 
         pairs = [team for placement in sorted(placements) for team in teams if team[0].subteam_placement == team[1].subteam_placement == placement]
 
@@ -602,16 +602,15 @@ class Embed:
 
     @staticmethod
     def profile_match(puuid: str, match: Match) -> discord.Embed:
-        info = match.info
-        queue = info.queue
+        queue = match.queue
 
-        player = next((p for p in info.participants if p.puuid == puuid), info.participants[0])
+        player = next((p for p in match.participants if p.puuid == puuid), match.participants[0])
         win_text = Match.remake if player.remake else (Match.victory if player.win else Match.defeat)
 
         embed = discord.Embed(
             description=(
                 f"# {queue.emoji_victory if player.win else queue.emoji_defeat}{space}{win_text}\n"
-                f"**{queue.map}{split}{queue.description}{split}{info.duration}{split}<t:{info.end_timestamp}:d>{split}"
+                f"**{queue.map}{split}{queue.description}{split}{match.duration}{split}<t:{match.end}:d>{split}"
                 f"||[{match.id.split('_')[1]}]({blitz_match(player.riot_game_name, player.riot_tag_line, match.region, match.id)})||**\n"
                 f"```ansi\n{Color.ansi_gray}—————————————————————————————————————————————————————————————```"
             ),
@@ -619,9 +618,9 @@ class Embed:
         )
         
         if queue == Queue.cherry:
-            Embed.cherry_match(embed=embed, info=info)
+            Embed.cherry_match(embed=embed, match=match)
         else:
-            Embed.classic_aram_match(embed=embed, info=info)
+            Embed.classic_aram_match(embed=embed, match=match)
         
         return embed
 

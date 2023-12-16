@@ -52,11 +52,11 @@ class Settings(object):
             )
         )
         self.__discord_guild_object = discord.Object(id=_discord_guild_id)
-        self.__discord_channel_id = os.environ.get(
+        self.__discord_channel_id = int(os.environ.get(
             _discord.get(
                 "Channel_ID", _default["discord"]["Channel_ID"]
             )
-        )
+        ))
         self.__discord_activities = _discord.get(
             "Activities", _default["discord"]["Activities"]
         )
