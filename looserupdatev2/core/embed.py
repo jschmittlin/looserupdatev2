@@ -295,46 +295,47 @@ class Embed:
             text=summoner.region, icon_url=summoner.region.icon,
         )
 
-        try:
-            solo = league.solo
-            embed.add_field(
-                name="**SOLO/DUO**",
-                value=(
-                    f"{solo.tier.emoji} `{solo.tier} {solo.division.value}`{blank * 3}{solo.league_points} LP\n"
-                    f"{get_winrate(solo.wins, solo.losses)}% Win Rate{blank * 3}{solo.wins}W - {solo.losses}L\n"
-                    f"{blank * 10}"
-                ),
-                inline=True,
-            )
-        except ValueError:
-            embed.add_field(
-                name="**SOLO/DUO**",
-                value=f"{Tier.unranked.emoji} `{Tier.unranked}`\n{blank * 10}",
-                inline=True,
-            )
+        def league_field(embed: discord.Embed, league: LeagueEntries, type: str) -> None:
+            try:
+                if type == "SOLO/DUO":
+                    league = league.solo
+                if type == "FLEX":
+                    league = league.flex
+            except ValueError:
+                embed.add_field(
+                    name=f"**{type}**",
+                    value=f"{Tier.unranked.emoji} `{Tier.unranked}`\n{blank * 10}",
+                    inline=True,
+                )
+            else:
+                rank = f"{league.tier} {league.division.value}"
+                lp = f"{league.league_points} LP"
+                win_loss = f"{league.wins}W - {league.losses}L"
 
-        try:
-            flex = league.flex
-            embed.add_field(
-                name="**FLEX 5V5**",
-                value=(
-                    f"{flex.tier.emoji} `{flex.tier} {flex.division.value}`{blank * 3}{flex.league_points} LP\n"
-                    f"{get_winrate(flex.wins, flex.losses)}% Win Rate{blank * 3}{flex.wins}W {flex.losses}L\n"
-                    f"{blank * 10}"
-                ),
-                inline=True,
-            )
-        except ValueError:
-            embed.add_field(
-                name="**FLEX 5V5**",
-                value=f"{Tier.unranked.emoji} `{Tier.unranked}`\n{blank * 10}",
-                inline=True,
-            )
+                length_lp = 25 - (len(rank) + len(lp))
+                length_win_loss = 17 - len(win_loss)
+
+                spacing_lp = f"{space * 2}" * length_lp
+                spacing_win_loss = f"{space * 2}" * length_win_loss
+
+                embed.add_field(
+                    name=f"**{type}**",
+                    value=(
+                        f"{league.tier.emoji} `{rank}`{spacing_lp}{lp}\n"
+                        f"{get_winrate(league.wins, league.losses)}% Win Rate{spacing_win_loss}{win_loss}\n"
+                        f"{blank * 10}"
+                    ),
+                    inline=True,
+                )
+            
+
+        league_field(embed=embed, league=league, type="SOLO/DUO")
+        league_field(embed=embed, league=league, type="FLEX")
 
         masteries_fields = []
         for mastery in masteries.champion_mastery_list:
-            length_caracter = 15 - len(mastery.champion.name)
-            spacing = f"{space * 2}" * length_caracter
+            length_diff = 13 - len(mastery.champion.name)
+            spacing = f"{space * 2}" * length_diff
             s = f"{mastery.champion.get_emoji} `{mastery.champion.name}`{spacing}{Mastery.mastery} {mastery.points:,} pts"
             masteries_fields.append(s)
 
