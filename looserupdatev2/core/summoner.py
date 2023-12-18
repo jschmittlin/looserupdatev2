@@ -37,7 +37,9 @@ class Summoner(LolObject):
         name: str = None,
         region: Union[Region, str] = None,
     ):
-        kwargs = {"region": region}
+        if isinstance(region, str):
+            region = Region(region)
+        kwargs = {"platform": region.platform}
         if id is not None:
             kwargs["id"] = id
         if account_id is not None:

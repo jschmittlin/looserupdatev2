@@ -1,4 +1,4 @@
-from typing import List
+from typing import Optional, List
 import logging
 
 import discord
@@ -9,6 +9,7 @@ from ...data import Region
 from ...core import LooserUpdateV2Bot, Embed
 from ...core import PlayerList
 from ...looserupdatev2 import (
+    get_account,
     get_summoner,
     get_player_list,
     remove_player,
@@ -26,15 +27,23 @@ class Player(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="add-player", description="Add player to the update list.")
-    @app_commands.describe(name="Player Name", region="Region")
+    @app_commands.describe(name="Game Name", tag="TagLine", region="Region")
     @app_commands.choices(region=[app_commands.Choice(name=str(r), value=r.value) for r in Region])
     async def add_player_command(
-        self, interaction: discord.Interaction, name: str, region: app_commands.Choice[str],
+        self, interaction: discord.Interaction, name: str, tag: Optional[str], region: Optional[app_commands.Choice[str]],
     ) -> None:
         await interaction.response.defer()
 
+        if region is None:
+            region = self.bot.settings.default_region
+
         try:
-            summoner = get_summoner(name=name, region=self.bot.settings.default_region)
+            if tag is None:
+                summoner = get_summoner(name=name, region=region)
+            else:
+                tag = tag[1:] if tag.startswith("#") else tag
+                account = get_account(game_name=name, tag_line=tag, region=region)
+                summoner = account.summoner
         except Exception as error:
             embed = Embed.error_summoner(error=error)
             return await interaction.followup.send(embed=embed)
@@ -52,13 +61,13 @@ class Player(commands.Cog):
         self, interaction: discord.Interaction, current: str,
     ) -> List[app_commands.Choice[str]]:
         return [
-            app_commands.Choice(name=f"{player.game_name} #{player.tag_line}", value=(player.game_name, player.tag_line))
+            app_commands.Choice(name=f"{player.game_name} #{player.tag_line}", value=f"{player.game_name}-{player.tag_line}")
             for player in get_player_list()
             if current.lower() in player.game_name.lower()
         ]
 
     @app_commands.command(name="remove-player", description="Remove player from the update list.")
-    @app_commands.describe(name="Player Name")
+    @app_commands.describe(name="Game Name")
     @app_commands.autocomplete(name=remove_player_autocomplete)
     async def remove_player_command(
         self, interaction: discord.Interaction, name: str,
@@ -66,7 +75,8 @@ class Player(commands.Cog):
         await interaction.response.defer()
 
         try:
-            player = remove_player(name=name)
+            game_name, tag_line = name.split("-")
+            player = remove_player(game_name=game_name, tag_line=tag_line)
         except ValueError as error:
             embed = Embed.player_error(error=error)
             return await interaction.followup.send(embed=embed)

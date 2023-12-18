@@ -1,6 +1,7 @@
 from typing import MutableMapping, Any
 
 from .common import RiotAPIService, APIError, APINotFoundError
+from ...data import Continent
 from ...dto.account import AccountDto
 
 
@@ -16,15 +17,14 @@ class AccountApi(RiotAPIService):
         Get account.
 
         :param dict query:  Query parameters for the request:
-                            - region:        Region
+                            - platform:      Platform
                             - puuid:         Encrypted summoner ID. Max length 63 characters.
                             - (or) gameName: This field may be excluded from the response if the account doesn't have a gameName.
                             - (and) tagLine: This field may be excluded from the response if the account doesn't have a tagLine.
 
         :return: AccountDTO:
         """
-        region = query["region"]
-        continent: Continent = region.continent
+        continent: Continent = query["platform"].continent
         if "puuid" in query:
             url = "https://{continent}.api.riotgames.com/riot/account/v1/accounts/by-puuid/{puuid}".format(
                 continent=continent.value.lower(), puuid=query["puuid"],
@@ -37,7 +37,9 @@ class AccountApi(RiotAPIService):
         try:
             data = self._get(url, {})
         except APINotFoundError as error:
-            raise APINotFoundError(str(error)) from error
+            raise APINotFoundError(
+                message=error.message, code=error.code, response_headers=error.response_headers
+            )
 
-        data["region"] = query["region"].value
+        data["region"] = query["platform"].region.value
         return AccountDto(data)

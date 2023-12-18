@@ -28,7 +28,9 @@ class ChallengesApi(RiotAPIService):
         try:
             data = self._get(url, {})
         except APINotFoundError as error:
-            raise APINotFoundError(str(error)) from error
+            raise APINotFoundError(
+                message=error.message, code=error.code, response_headers=error.response_headers
+            )
 
         data["region"] = query["platform"].region.value
         return PlayerInfoDto(data)

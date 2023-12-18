@@ -63,10 +63,10 @@ class Player(LolObject):
     def to_dict(self) -> Mapping[str, Any]:
         return {
             "region": self._data[PlayerData].region,
-            "gameName": self._data[PlayerData].gameName,
-            "tagLine": self._data[PlayerData].tagLine,
             "id": self._data[PlayerData].id,
             "puuid": self._data[PlayerData].puuid,
+            "gameName": self._data[PlayerData].gameName,
+            "tagLine": self._data[PlayerData].tagLine,
             "name": self._data[PlayerData].name,
             "profileIconId": self._data[PlayerData].profileIconId,
             "tier": self._data[PlayerData].tier,
@@ -99,12 +99,14 @@ class Player(LolObject):
             solo = None
 
         if solo is None:
-            new_tier, new_division, new_rank, new_lp = Tier.unranked, Division.one, Rank(tier=Tier.unranked, division=Division.one), 0
+            new_tier, new_division, new_rank = Tier.unranked, Division.one, Rank(tier=Tier.unranked, division=Division.one)
+            new_lp, new_wins, new_losses = 0, 0, 0
 
             number = int(old_description.split(" ")[1].split("/")[0]) + 1
             new_description = f"PLACEMENTS {number}/10"
         else:
-            new_tier, new_division, new_rank, new_lp = solo.tier, solo.division, Rank(tier=solo.tier, division=solo.division), solo.league_points
+            new_tier, new_division, new_rank = solo.tier, solo.division, Rank(tier=solo.tier, division=solo.division)
+            new_lp, new_wins, new_losses = solo.league_points, solo.wins, solo.losses
 
             if old_rank == new_rank:
                 lp_difference = abs(new_lp - old_lp)
@@ -114,9 +116,14 @@ class Player(LolObject):
             elif old_rank < new_rank:
                 new_description = f"PROMOTE TO {new_rank}"
 
+        account = summoner.account
+
         # Update player data
-        self.game_name, self.tag_line, self.name, self.profile_icon = summoner.account.game_name, summoner.account.tag_line, summoner.name, summoner.profile_icon.id
-        self.tier, self.division, self.league_points, self.match, self.description = new_tier.value, new_division.value, new_lp, match_id, new_description
+        self.game_name, self.tag_line = account.game_name, account.tag_line
+        self.name, self.profile_icon = summoner.name, summoner.profile_icon.id
+        self.tier, self.division = new_tier.value, new_division.value
+        self.league_points, self.wins, self.losses = self.league_points, new_wins, new_losses
+        self.match, self.description = match_id, new_description
         return True
 
     @property
@@ -161,16 +168,11 @@ class Player(LolObject):
 
     @property
     def wins(self) -> int:
-        if self._data[PlayerData].wins:
-            return self._data[PlayerData].wins
-        else:
-            return 0
+        return self._data[PlayerData].wins
 
     @property
     def losses(self) -> int:
-        if self._data[PlayerData].losses:
-            return self._data[PlayerData].losses
-        return 0
+        return self._data[PlayerData].losses
 
     @property
     def description(self) -> str:

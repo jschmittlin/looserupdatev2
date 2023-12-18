@@ -2,8 +2,8 @@ import random
 
 
 class Icon:
-    bot_profile="https://cdn.discordapp.com/attachments/1039594104759271428/1179153474689187952/looserupdatev2-icon.jpg?ex=6578bf3f&is=65664a3f&hm=411de912cfecf1a7f4cb23753a2488850e9f4da4e892457005e5c40ffcc41e52&"
-    bot_error="https://cdn.discordapp.com/attachments/1039594104759271428/1179153474173276312/looserupdatev2-error.jpg?ex=6578bf3f&is=65664a3f&hm=8deb8fcb6cd7f8902fd37fa2155d7fa4dc53a24c0d311ebc572287a3852573e7&"
+    bot_profile="https://cdn.discordapp.com/attachments/1039594104759271428/1186285123172311050/looserupdatev2-icon.png?ex=6592b11d&is=65803c1d&hm=94a85160cc7e8dfb8dc534df1560d03d5352a69bf1c9886eda7b5c16aaff7665&"
+    bot_error="https://cdn.discordapp.com/attachments/1039594104759271428/1186285121804980254/looserupdatev2-error.png?ex=6592b11d&is=65803c1d&hm=bf1d8d8777c06e74d53fdeb624480128e51397cdf3eec3ad8e5cfeda0310474f&"
 
     ux_check="https://cdn.discordapp.com/attachments/1039594104759271428/1179153581618757792/icon-check-over.png?ex=6578bf59&is=65664a59&hm=0eef469f627b3b816610aea9356602e10bf8d6b815482bcfc948fcea9b4a33e4&"
     ux_x="https://cdn.discordapp.com/attachments/1039594104759271428/1179153583007088691/icon-x-over.png?ex=6578bf59&is=65664a59&hm=1175a96b4ed41a57b18e3c3e049b0f0412695348733bdaec2976901eba25e10b&"

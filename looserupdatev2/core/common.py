@@ -105,9 +105,6 @@ class LolObject(object):
         if api_name is None:
             return query
 
-        if "region" in query:
-            query["platform"] = Platform.from_region(Region(query["region"]))
-
         api = RIOT.services.get(api_name)
 
         if not api:
@@ -135,8 +132,6 @@ class LolObject(object):
                 raise Exception(f"{api_name}: {error}") from error
         else:
             raise ValueError(f"Method for {api_name} not defined")
-
-        # response = self._clear(response, dto._dict)
 
         return response
 

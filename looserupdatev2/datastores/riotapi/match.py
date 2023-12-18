@@ -35,7 +35,9 @@ class MatchApi(RiotAPIService):
             data = self._get(url, {})
             data = data["info"]
         except APINotFoundError as error:
-            raise APINotFoundError(str(error)) from error
+            raise APINotFoundError(
+                message=error.message, code=error.code, response_headers=error.response_headers
+            )
 
         data["region"] = platform.region.value
         data["matchId"] = id

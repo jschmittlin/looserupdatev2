@@ -127,7 +127,7 @@ class LeagueEntries(LolObject):
         self, summoner: Summoner
     ):
         kwargs = {
-            "region": summoner.region, "id": summoner.id,
+            "platform": summoner.platform, "id": summoner.id,
         }
         super().__init__(**kwargs)
 

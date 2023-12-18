@@ -36,7 +36,7 @@ class LooserUpdateV2Bot(AutoShardedBot):
         self.change_activity_loop.start()
         self.update_ddragon_cache_loop.start()
         self.add_undefined_emojis_loop.start()
-        # self.update_players_loop.start() # have to be started after the first ddragon cache update
+        # self.update_players_loop.start()      # have to be started after the first ddragon cache update
 
     @tasks.loop(minutes=20)
     async def change_activity_loop(self) -> None:
@@ -133,6 +133,7 @@ class LooserUpdateV2Bot(AutoShardedBot):
 
         players = PlayerList()
         for player in players:
+            LOGGER.info(f"Updating {player.name}'s solo rank...")
             if player.update_rank():
                 LOGGER.info(f"Updated {player.name}'s solo rank")
 
@@ -143,10 +144,12 @@ class LooserUpdateV2Bot(AutoShardedBot):
                     self.to_update = False
                     return
 
-                embed = Embed.player_update(player=player)
-                view = UpdatePlayerView(player=player)
+                match = player.match
+                embed = Embed.player_update(player=player, match=match)
+                view = UpdatePlayerView(player=player, match=match)
                 await channel.send(embed=embed, view=view)
             await asyncio.sleep(1) 
+            LOGGER.info(f"Updating {player.name}'s solo rank done")
 
         players.to_json()
 

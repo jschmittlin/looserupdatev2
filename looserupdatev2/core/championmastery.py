@@ -102,7 +102,7 @@ class ChampionMasteries(LolObject):
         self, summoner: Summoner
     ):
         kwargs = {
-            "region": summoner.region, "puuid": summoner.puuid
+            "platform": summoner.platform, "puuid": summoner.puuid
         }
         super().__init__(**kwargs)
 

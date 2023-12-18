@@ -15,6 +15,7 @@ LOGGER = logging.getLogger("looserupdatev2.datastores")
 class HTTPError(RuntimeError):
     def __init__(self, message, code, response_headers: Dict[str, str] = None):
         super().__init__(message)
+        self.message = message
         self.code = code
         self.response_headers = response_headers or {}
 

@@ -32,7 +32,9 @@ class Account(LolObject):
         tag_line: str = None,
         region: Union[Region, str] = None,
     ):
-        kwargs = {"region": region}
+        if isinstance(region, str):
+            region = Region(region)
+        kwargs = {"platform": region.platform}
         if puuid is not None:
             kwargs["puuid"] = puuid
         if game_name is not None and tag_line is not None:

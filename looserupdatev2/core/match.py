@@ -148,6 +148,8 @@ class MatchHistory(LolObject):
         start: int = None,
         count: int = None,
     ):
+        if isinstance(region, str):
+            region = Region(region)
         kwargs = {
             "region": region, "puuid": puuid,
         }

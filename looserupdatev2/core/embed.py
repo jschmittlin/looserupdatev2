@@ -1,9 +1,13 @@
 from typing import Union, List
 import discord
 
+from .account import Account
 from .summoner import Summoner
-from .match import Match
+from .match import Match, MatchHistory
 from .player import Player, PlayerList
+from .challenges import PlayerInfo
+from .championmastery import ChampionMasteries
+from .league import LeagueEntries
 from ..data import Region, Platform, Queue, Tier, Lane
 
 from ..resources import Icon, Color 
@@ -215,8 +219,7 @@ class Embed:
         return embed
 
     @staticmethod
-    def player_update(player: Player) -> discord.Embed:
-        match = player.match
+    def player_update(player: Player, match: Match) -> discord.Embed:
         match_player = next((p for p in match.participants if p.puuid == player.puuid), match.participants[0])
 
         player_rank = f"{player.tier} {player.division.value}" if player.tier else f"{Tier.unranked}"
@@ -270,24 +273,22 @@ class Embed:
         )
 
     @staticmethod
-    def profile_overview(summoner: Summoner) -> discord.Embed:
-        champion_masteries = summoner.champion_masteries
-        league = summoner.league_entries
-        challenges = summoner.challenges
-
+    def profile_overview(
+        summoner: Summoner, account: Account, challenges: PlayerInfo, masteries: ChampionMasteries, league: LeagueEntries
+    ) -> discord.Embed:
         title = f'*{challenges.preferences.title.title}*\n' if challenges.preferences.title.title else ''
 
         embed = discord.Embed(
             description=(
-                f"{Mastery.mastery} **{champion_masteries.score}**{blank * 16}Lvl.{summoner.level}\n"
+                f"{Mastery.mastery} **{masteries.score}**{blank * 16}Lvl.{summoner.level}\n"
                 f"{title}"
                 f"```ansi\n{Color.ansi_gray}—————————————————————————————————————————————————```"
             ),
             color=Color.default,
         ).set_author(
-            name=f"{summoner.account.game_name}{space}#{summoner.account.tag_line}",
+            name=f"{account.game_name}{space}#{account.tag_line}",
             icon_url=summoner.profile_icon.url,
-            url=blitz_profile(game_name=summoner.account.game_name, tag_line=summoner.account.tag_line, platform=summoner.platform),
+            url=blitz_profile(game_name=account.game_name, tag_line=account.tag_line, platform=summoner.platform),
         ).set_thumbnail(
             url=summoner.profile_icon.url,
         ).set_footer(
@@ -331,7 +332,7 @@ class Embed:
             )
 
         masteries_fields = []
-        for mastery in champion_masteries.champion_mastery_list:
+        for mastery in masteries.champion_mastery_list:
             length_caracter = 15 - len(mastery.champion.name)
             spacing = f"{space * 2}" * length_caracter
             s = f"{mastery.champion.get_emoji} `{mastery.champion.name}`{spacing}{Mastery.mastery} {mastery.points:,} pts"
@@ -441,8 +442,7 @@ class Embed:
             Embed.mini_classic_aram(embed=embed, match=match, player=player)
 
     @staticmethod
-    def profile_match_history(summoner: Summoner) -> discord.Embed:
-        match_history = summoner.match_history
+    def profile_match_history(matchs: List[Match], puuid: str) -> discord.Embed:
         embed = discord.Embed(
             description=(
                 f"### RECENT GAMES (LAST 5 PLAYED)\n"
@@ -450,11 +450,11 @@ class Embed:
             ),
             color=Color.default,
         )
-        Embed.match_mini(embed=embed, puuid=summoner.puuid, match=match_history[0])
-        Embed.match_mini(embed=embed, puuid=summoner.puuid, match=match_history[1])
-        Embed.match_mini(embed=embed, puuid=summoner.puuid, match=match_history[2])
-        Embed.match_mini(embed=embed, puuid=summoner.puuid, match=match_history[3])
-        Embed.match_mini(embed=embed, puuid=summoner.puuid, match=match_history[4])
+        Embed.match_mini(embed=embed, puuid=puuid, match=matchs[0])
+        Embed.match_mini(embed=embed, puuid=puuid, match=matchs[1])
+        Embed.match_mini(embed=embed, puuid=puuid, match=matchs[2])
+        Embed.match_mini(embed=embed, puuid=puuid, match=matchs[3])
+        Embed.match_mini(embed=embed, puuid=puuid, match=matchs[4])
         return embed
 
     @staticmethod
@@ -617,7 +617,7 @@ class Embed:
             description=(
                 f"# {queue.emoji_victory if player.win else queue.emoji_defeat}{space}{win_text}\n"
                 f"**{queue.map}{split}{queue.description}{split}{match.duration}{split}<t:{match.end}:d>{split}"
-                f"||[{match.id.split('_')[1]}]({blitz_match(player.riot_game_name, player.riot_tag_line, match.platform, match.id)})||**\n"
+                f"||[{match.id}]({blitz_match(player.riot_game_name, player.riot_tag_line, match.platform, match.id)})||**\n"
                 f"```ansi\n{Color.ansi_gray}—————————————————————————————————————————————————————————————```"
             ),
             color=Color.victory if player.win else Color.defeat,

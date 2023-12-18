@@ -111,10 +111,10 @@ def get_player_list() -> PlayerList:
     return PlayerList()
 
 def get_player(game_name: str = None, tag_line: str = None) -> Player:
-    return PlayerList().get(name=name)
+    return PlayerList().get(game_name=game_name, tag_line=tag_line)
 
 def add_player(summoner: Summoner) -> Player:
     return PlayerList().add(summoner=summoner)
 
 def remove_player(game_name: str = None, tag_line: str = None) -> Player:
-    return PlayerList().remove(name=name)
+    return PlayerList().remove(game_name=game_name, tag_line=tag_line)
