@@ -110,7 +110,8 @@ class Player(LolObject):
 
             if old_rank == new_rank:
                 lp_difference = abs(new_lp - old_lp)
-                new_description = f"{lp_difference} LP"
+                lp_sign = "+" if new_lp >= old_lp else "-"
+                new_description = f"{lp_sign}{lp_difference} LP"
             elif old_rank > new_rank:
                 new_description = f"DEMOTE TO {new_rank}"
             elif old_rank < new_rank:
