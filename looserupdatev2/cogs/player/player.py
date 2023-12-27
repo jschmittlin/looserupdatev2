@@ -36,6 +36,8 @@ class Player(commands.Cog):
 
         if region is None:
             region = self.bot.settings.default_region
+        else:
+            region = Region(region.value)
 
         try:
             if tag is None:
