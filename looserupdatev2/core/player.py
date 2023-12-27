@@ -123,7 +123,7 @@ class Player(LolObject):
         self.game_name, self.tag_line = account.game_name, account.tag_line
         self.name, self.profile_icon = summoner.name, summoner.profile_icon.id
         self.tier, self.division = new_tier.value, new_division.value
-        self.league_points, self.wins, self.losses = self.league_points, new_wins, new_losses
+        self.league_points, self.wins, self.losses = new_lp, new_wins, new_losses
         self.match, self.description = match_id, new_description
         return True
 
