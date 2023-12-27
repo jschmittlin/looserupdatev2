@@ -69,7 +69,7 @@ class CoreData(object):
 
 class LolObject(object):
     _renamed = {}
-    
+
     def __init__(self, **kwargs):
         self._data = {_type: None for _type in self._data_types}
         results = {_type: {} for _type in self._data_types}
@@ -82,7 +82,6 @@ class LolObject(object):
                     results[_type] = self.from_json(_type._file)
                 else:
                     results[_type] = kwargs
-                
 
         for _type, insert_this in results.items():
             if self._data[_type] is not None:
@@ -135,34 +134,6 @@ class LolObject(object):
 
         return response
 
-    def _clear(
-        self, data: MutableMapping[str, Any] = None, dto: Mapping[str, Any] = None,
-    ) -> Mapping[str, Any]:
-        if data is None:
-            return {}
-
-        if not isinstance(data, (dict, list)):
-            if not isinstance(dto, (dict, list)):
-                return data if isinstance(data, dto) else None
-            elif isinstance(dto, dict):
-                return {key: data for key, value_type in dto.items() if isinstance(data, value_type)}
-
-        if isinstance(data, dict):
-            return {
-                key: (
-                    self._clear(data.get(key), value_type) if isinstance(value_type, dict)
-                    else [self._clear(item, value_type[0]) for item in data[key]] if isinstance(value_type, list) and key in data and isinstance(value_type[0], dict)
-                    else [item for item in data[key] if isinstance(item, value_type[0])] if isinstance(value_type, list) and key in data
-                    else data[key] if key in data and isinstance(data[key], value_type)
-                    else None
-                )
-                for key, value_type in dto.items()
-            }
-        elif isinstance(data, list):
-            return {key: [self._clear(item, value_type[0]) for item in data] for key, value_type in dto.items()}
-
-        return {}
-
     def to_json(
         self, file: Optional[str] = None, data: Mapping[str, Any] = None,
     ) -> None:
@@ -172,7 +143,7 @@ class LolObject(object):
         file_name = os.path.join(os.path.dirname(__file__), "../datastores/data", file)
         with open(file_name, "w") as json_file:
             json.dump(data, json_file)
-    
+
     def from_json(
         self, file: Optional[str] = None,
     ) -> Mapping[str, Any]:
