@@ -61,11 +61,11 @@ def get_kp(kills: int, assists: int, team_kills: int) -> Union[int, str]:
 
 def spacing_lane(position: Lane) -> str:
     if position == Lane.top:
-        return blank
+        return space * 2
     if position == Lane.jungle:
-        return space
+        return ""
     if position == Lane.middle:
-        return blank + space * 1
+        return space * 2
     if position == Lane.bottom:
         return space * 2
     if position == Lane.utility:
@@ -247,7 +247,7 @@ class Embed:
             description=embed_description,
             color=Color.victory if match_player.win else Color.defeat,
         ).set_author(
-            name=f"{player.game_name}{space}#{player.tag_line}",
+            name=f"{player.game_name} #{player.tag_line}",
             icon_url=player.profile_icon.url,
             url=blitz_profile(game_name=player.game_name, tag_line=player.tag_line, platform=player.platform),
         )
@@ -286,7 +286,7 @@ class Embed:
             ),
             color=Color.default,
         ).set_author(
-            name=f"{account.game_name}{space}#{account.tag_line}",
+            name=f"{account.game_name} #{account.tag_line}",
             icon_url=summoner.profile_icon.url,
             url=blitz_profile(game_name=account.game_name, tag_line=account.tag_line, platform=summoner.platform),
         ).set_thumbnail(
@@ -313,7 +313,7 @@ class Embed:
                 win_loss = f"{league.wins}W - {league.losses}L"
 
                 length_lp = 25 - (len(rank) + len(lp))
-                length_win_loss = 17 - len(win_loss)
+                length_win_loss = 16 - len(win_loss)
 
                 spacing_lp = f"{space * 2}" * length_lp
                 spacing_win_loss = f"{space * 2}" * length_win_loss
