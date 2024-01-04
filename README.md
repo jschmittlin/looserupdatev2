@@ -7,12 +7,6 @@ LooserUpdateV2 is a discord bot that allows you to view summoner profile and get
 
 Inspired by LooserUpdate introduced by [@mlouison](https://github.com/mlouison)
 
-## Features
-
-* Summoner profile
-* Notifed when a player has played a ranked game
-* Automatic add new emoji
-
 ## Commands
 
 | Command                                   | function                           |
@@ -21,7 +15,7 @@ Inspired by LooserUpdate introduced by [@mlouison](https://github.com/mlouison)
 | `/set-region` +region                     | Set the default region             |
 | `/add-player` +name (+tag) (+region)      | Add player to the update list      |
 | `/remove-player` +name                    | Remove player from the update list |
-| `/player-list`                            | View updated list of players       |
+| `/player-list`                            | View update list of players        |
 | `/help`                                   | List of commands                   |
 
 ### Example
