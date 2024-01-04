@@ -64,28 +64,28 @@ class RiotAPIService():
                 )
             elif error_type is APIError:
                 new_error = APIError(
-                    "Riot API is currently unavailable. Please try again later. The received error code was {code}: {message}".format(
+                    "Riot API is currently unavailable. Please try again later.\nThe received error code was {code}: {message}".format(
                         code=error.code, message=str(error)
                     ),
                     error.code,
                 )
             elif error_type is APINotFoundError:
                 new_error = APINotFoundError(
-                    "Riot API returned a NOT FOUND error. The received error code was {code}: {message}".format(
+                    "Riot API returned a NOT FOUND error.\nThe received error code was {code}: {message}".format(
                         code=error.code, message=str(error)
                     ),
                     error.code,
                 )
             elif error_type is APIRequestError:
                 new_error = APIRequestError(
-                    "Riot API returned a BAD REQUEST error. The received error code was {code}: {message}".format(
+                    "Riot API returned a BAD REQUEST error.\nThe received error code was {code}: {message}".format(
                         code=error.code, message=str(error)
                     ),
                     error.code,
                 )
             elif error_type is APIForbiddenError:
                 new_error = APIForbiddenError(
-                    "Riot API returned a FORBIDDEN error. The received error code was {code}: {message}".format(
+                    "Riot API returned a FORBIDDEN error.\nThe received error code was {code}: {message}".format(
                         code=error.code, message=str(error)
                     ),
                     error.code,

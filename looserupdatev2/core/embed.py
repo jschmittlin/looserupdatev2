@@ -260,7 +260,7 @@ class Embed:
     def error_summoner(error: str) -> discord.Embed:
         return discord.Embed(
             description=(
-                f"{Color.discord_preset_error(error=f'{error} - summoner not found')}\n"
+                f"{Color.discord_preset_error(error=error)}\n"
                 "**Something went horribly wrong executing that command, please try again in a bit. "
                 "If this error keeps happening, please send a bug report.\n\n"
                 "Try '/help' for more information.**"
