@@ -24,23 +24,23 @@ Inspired by LooserUpdate introduced by [@mlouison](https://github.com/mlouison)
 
 * Overview
 
-![image](https://cdn.discordapp.com/attachments/1039594104759271428/1192527325699526727/profile.PNG?ex=65a9669e&is=6596f19e&hm=d16aadea8d20a17bba059c958f6032750644940623761d566a0c3292ae45ef7b&)
+![image](https://github.com/jschmittlin/looserupdatev2/blob/main/looserupdatev2/resources/assets/screenshot/profile.PNG)
 
 * Match History
 
-![image](https://media.discordapp.net/attachments/1039594104759271428/1192527325443653705/history.PNG?ex=65a9669e&is=6596f19e&hm=f20cc38593dbc204f7b5ac75e382095ba2e47318941bcfcf5cae2948878ce4c0&=&format=webp&quality=lossless&width=475&height=473)
+![image](https://github.com/jschmittlin/looserupdatev2/blob/main/looserupdatev2/resources/assets/screenshot/history.PNG)
 
 * Match Details • Arena
 
-![image](https://media.discordapp.net/attachments/1039594104759271428/1192527324927774720/cherry.PNG?ex=65a9669e&is=6596f19e&hm=007931b1961b16bdd0998f0f323d12d776701e405e022dd4c0d2d4417e524b9b&=&format=webp&quality=lossless&width=463&height=473)
+![image](https://github.com/jschmittlin/looserupdatev2/blob/main/looserupdatev2/resources/assets/screenshot/cherry.PNG)
 
 * Match Details • Classic
 
-![image](https://media.discordapp.net/attachments/1039594104759271428/1192527325196198029/classic.PNG?ex=65a9669e&is=6596f19e&hm=8525ac0dbe0dc2a78e826a763337f0d24255a0a56ef0876d239d0bda1e800c51&=&format=webp&quality=lossless&width=537&height=473)
+![image](https://github.com/jschmittlin/looserupdatev2/blob/main/looserupdatev2/resources/assets/screenshot/classic.PNG)
 
 * Notification • Solo/Duo Ranked Game
 
-![image](https://media.discordapp.net/attachments/1039594104759271428/1192527325972144259/update.PNG?ex=65a9669e&is=6596f19e&hm=abbfb362eef4ca486edc214da6e942c49106c5c103451827e6650dc721bf123d&=&format=webp&quality=lossless)
+![image](https://github.com/jschmittlin/looserupdatev2/blob/main/looserupdatev2/resources/assets/screenshot/update.PNG)
 
 ## Disclaimer
 
