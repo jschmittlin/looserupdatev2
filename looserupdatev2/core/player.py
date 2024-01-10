@@ -102,6 +102,9 @@ class Player(LolObject):
             new_tier, new_division, new_rank = Tier.unranked, Division.one, Rank(tier=Tier.unranked, division=Division.one)
             new_lp, new_wins, new_losses = 0, 0, 0
 
+            if not "PLACEMENTS" in old_description: # new season 
+                old_description = "PLACEMENTS 0/10"
+
             number = int(old_description.split(" ")[1].split("/")[0]) + 1
             new_description = f"PLACEMENTS {number}/10"
         else:
