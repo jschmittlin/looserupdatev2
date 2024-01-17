@@ -525,7 +525,7 @@ class Embed:
 
         if team_1_bans or team_2_bans:
             embed.add_field(
-                name="", value=f"{team_1_bans}{blank * 15}{team_1_bans}", inline=False,
+                name="", value=f"{team_1_bans}{blank * 15}{team_2_bans}", inline=False,
             )
 
         Embed.classic_team(embed=embed, team_id=100, team=match.teams[0], participants=match.participants[:5])
